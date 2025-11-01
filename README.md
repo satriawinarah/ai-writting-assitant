@@ -1,4 +1,4 @@
-# Indonesian Writing Assistant
+# DiksiAI
 
 An AI-powered writing assistant for Indonesian language with smart text continuation and improvement features.
 
@@ -208,7 +208,7 @@ Response:
 ### Project Structure
 
 ```
-author-ai-ide/
+diksiai/
 ├── backend/
 │   ├── app/
 │   │   ├── api/          # API endpoints

@@ -137,7 +137,7 @@ export default function App() {
           </>
         ) : (
           <div className="empty-state">
-            <h2>Welcome to Author's Cursor</h2>
+            <h2>Welcome to DiksiAI</h2>
             <p>Create a new project to start writing</p>
           </div>
         )}

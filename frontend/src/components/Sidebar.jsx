@@ -2,7 +2,7 @@ export default function Sidebar({ projects, activeProject, onSelectProject, onNe
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h1>Author's Cursor</h1>
+        <h1>DiksiAI</h1>
         <button className="new-project-btn" onClick={onNewProject}>
           + New Project
         </button>

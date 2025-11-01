@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     """Application settings"""
 
     # Database
-    database_url: str = "sqlite:///./author_ai.db"
+    database_url: str = "sqlite:///./diksiai.db"
 
     # Groq API (Cloud - Free)
     groq_api_key: str = ""  # Set via environment variable GROQ_API_KEY

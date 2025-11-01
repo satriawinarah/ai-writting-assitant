@@ -16,8 +16,8 @@ Base.metadata.create_all(bind=engine)
 
 # Create FastAPI app
 app = FastAPI(
-    title="Author's Cursor API",
-    description="Smart writing IDE for book authors",
+    title="DiksiAI API",
+    description="AI-powered writing assistant for Indonesian language",
     version="0.1.0",
     debug=settings.debug,
 )
@@ -64,7 +64,7 @@ else:
     @app.get("/")
     def root():
         return {
-            "message": "Author's Cursor API",
+            "message": "DiksiAI API",
             "docs": "/docs",
             "frontend": "not built yet - run build script first"
         }
