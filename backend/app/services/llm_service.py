@@ -5,6 +5,42 @@ from app.config import get_settings
 class LLMService:
     """Service for LLM operations using Groq API"""
 
+    # Title style configurations
+    TITLE_STYLES = {
+        "click_bait": {
+            "name": "Click Bait",
+            "description": "Judul yang catchy, attention-grabbing dengan suspense atau curiosity"
+        },
+        "philosophy": {
+            "name": "Philosophy",
+            "description": "Judul yang deep, thought-provoking, dan filosofis"
+        },
+        "mystery": {
+            "name": "Mystery",
+            "description": "Judul yang enigmatic, mysterious yang memberi hint tentang rahasia"
+        },
+        "poetic": {
+            "name": "Poetic",
+            "description": "Judul yang artistic, lyrical dengan metafora"
+        },
+        "direct": {
+            "name": "Direct",
+            "description": "Judul yang clear, straightforward yang mendeskripsikan konten"
+        },
+        "dramatic": {
+            "name": "Dramatic",
+            "description": "Judul yang intense, emotional, high-stakes"
+        },
+        "symbolic": {
+            "name": "Symbolic",
+            "description": "Judul yang menggunakan simbolisme dan makna yang lebih dalam"
+        },
+        "literary": {
+            "name": "Literary",
+            "description": "Judul yang classic, elegant dengan gaya literary"
+        }
+    }
+
     # Writing style configurations
     WRITING_STYLES = {
         "puitis": {
@@ -221,6 +257,73 @@ Teks yang Diperbaiki:"""
 
         improved_text = response.choices[0].message.content.strip()
         return improved_text
+
+    async def suggest_title(self, content: str, title_style: str = "click_bait", temperature: float = 0.7) -> list[str]:
+        """
+        Generate title suggestions based on content using Groq API.
+
+        Args:
+            content: The story content to generate titles for
+            title_style: Title style to use (click_bait, philosophy, mystery, etc.)
+            temperature: Sampling temperature (0.0-1.0)
+
+        Returns:
+            List of 5 suggested titles
+        """
+        # Get style configuration, default to click_bait if not found
+        style_config = self.TITLE_STYLES.get(title_style, self.TITLE_STYLES["click_bait"])
+        style_desc = style_config["description"]
+
+        messages = [
+            {
+                "role": "system",
+                "content": f"""Kamu adalah asisten penulis yang ahli dalam membuat judul cerita yang menarik.
+
+Gaya judul yang diminta: {style_desc}
+
+Tugas: Buat 5 judul berbeda yang sesuai dengan gaya tersebut. Setiap judul harus unik dan menarik. Format output harus berupa list dengan format:
+1. Judul pertama
+2. Judul kedua
+3. Judul ketiga
+4. Judul keempat
+5. Judul kelima
+
+Tulis HANYA dalam BAHASA INDONESIA."""
+            },
+            {
+                "role": "user",
+                "content": f"""Konten Cerita:
+{content[:2000]}
+
+Berdasarkan konten di atas, buatlah 5 judul yang sesuai dengan gaya: {style_desc}
+
+Judul:"""
+            }
+        ]
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=500
+        )
+
+        # Parse the response to extract titles
+        result = response.choices[0].message.content.strip()
+
+        # Split by newlines and extract titles (remove numbering)
+        lines = result.split('\n')
+        titles = []
+        for line in lines:
+            line = line.strip()
+            if line and (line[0].isdigit() or line.startswith('-') or line.startswith('•')):
+                # Remove numbering like "1. ", "- ", "• ", etc.
+                title = line.lstrip('0123456789.-•) ').strip()
+                if title:
+                    titles.append(title)
+
+        # Return at least 5 titles, or all if we got less
+        return titles[:5] if len(titles) >= 5 else titles
 
     def check_model_available(self) -> bool:
         """Check if Groq API is available"""

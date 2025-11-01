@@ -38,6 +38,11 @@ export const aiAPI = {
     temperature: options.temperature || 0.7,
     writing_style: options.writingStyle || 'puitis',
   }),
+  suggestTitle: (content, options = {}) => api.post('/ai/suggest-title', {
+    content,
+    title_style: options.titleStyle || 'click_bait',
+    temperature: options.temperature || 0.7,
+  }),
   status: () => api.get('/ai/status'),
 };
 

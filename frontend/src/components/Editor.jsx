@@ -17,6 +17,10 @@ export default function Editor({ chapter, onUpdate }) {
   const [improvedText, setImprovedText] = useState(null);
   const [improvementLoading, setImprovementLoading] = useState(false);
   const [improvementError, setImprovementError] = useState(null);
+  const [titleStyle, setTitleStyle] = useState('click_bait'); // Title style for suggestions
+  const [titleSuggestions, setTitleSuggestions] = useState(null);
+  const [titleLoading, setTitleLoading] = useState(false);
+  const [titleError, setTitleError] = useState(null);
 
   // Writing styles definition
   const writingStyles = [
@@ -28,6 +32,50 @@ export default function Editor({ chapter, onUpdate }) {
     { value: 'filosofis', label: 'Filosofis' },
     { value: 'romantis', label: 'Romantis' },
     { value: 'realis', label: 'Realis Sosial' },
+  ];
+
+  // Title styles definition
+  const titleStyles = [
+    {
+      value: 'click_bait',
+      label: 'Click Bait',
+      description: 'Catchy, attention-grabbing titles with suspense or curiosity'
+    },
+    {
+      value: 'philosophy',
+      label: 'Philosophy',
+      description: 'Deep, thought-provoking, philosophical titles'
+    },
+    {
+      value: 'mystery',
+      label: 'Mystery',
+      description: 'Enigmatic, mysterious titles that hint at secrets'
+    },
+    {
+      value: 'poetic',
+      label: 'Poetic',
+      description: 'Artistic, lyrical titles with metaphors'
+    },
+    {
+      value: 'direct',
+      label: 'Direct',
+      description: 'Clear, straightforward titles that describe the content'
+    },
+    {
+      value: 'dramatic',
+      label: 'Dramatic',
+      description: 'Intense, emotional, high-stakes titles'
+    },
+    {
+      value: 'symbolic',
+      label: 'Symbolic',
+      description: 'Titles using symbolism and deeper meanings'
+    },
+    {
+      value: 'literary',
+      label: 'Literary',
+      description: 'Classic, elegant literary-style titles'
+    },
   ];
 
   const editor = useEditor({
@@ -162,6 +210,35 @@ export default function Editor({ chapter, onUpdate }) {
     setImprovementError(null);
   };
 
+  const suggestTitle = async () => {
+    if (!editor) return;
+
+    const content = editor.getText();
+    if (!content || content.trim().length < 100) {
+      setTitleError('Please write at least 100 characters before generating title suggestions.');
+      return;
+    }
+
+    setTitleLoading(true);
+    setTitleError(null);
+    setTitleSuggestions(null);
+
+    try {
+      const response = await aiAPI.suggestTitle(content, { titleStyle });
+      setTitleSuggestions(response.data.titles);
+    } catch (err) {
+      console.error('Error generating title suggestions:', err);
+      setTitleError(err.response?.data?.detail || 'Failed to generate title suggestions');
+    } finally {
+      setTitleLoading(false);
+    }
+  };
+
+  const dismissTitleSuggestions = () => {
+    setTitleSuggestions(null);
+    setTitleError(null);
+  };
+
   return (
     <div className="editor-container">
       <div className="editor-wrapper">
@@ -247,6 +324,67 @@ export default function Editor({ chapter, onUpdate }) {
             )}
           </div>
         )}
+
+        <div className="title-suggestion-panel">
+          <h4>Title Suggestions</h4>
+
+          <div className="control-group">
+            <label htmlFor="titleStyle">Title Style:</label>
+            <select
+              id="titleStyle"
+              value={titleStyle}
+              onChange={(e) => setTitleStyle(e.target.value)}
+              className="style-select"
+            >
+              {titleStyles.map((style) => (
+                <option key={style.value} value={style.value}>
+                  {style.label} - {style.description}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            className="generate-btn"
+            onClick={suggestTitle}
+            disabled={titleLoading}
+          >
+            {titleLoading ? 'Generating Titles...' : 'Suggest Titles'}
+          </button>
+
+          {titleLoading && (
+            <div className="loading">
+              Generating title suggestions...
+            </div>
+          )}
+
+          {titleError && (
+            <div className="error">
+              {titleError}
+            </div>
+          )}
+
+          {titleSuggestions && !titleLoading && (
+            <div className="title-suggestions-result">
+              <div className="titles-list">
+                <strong>Suggested Titles:</strong>
+                <ul>
+                  {titleSuggestions.map((title, index) => (
+                    <li key={index}>{title}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="title-actions">
+                <button onClick={suggestTitle}>
+                  Regenerate
+                </button>
+                <button onClick={dismissTitleSuggestions}>
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="suggestion-controls">
           <div className="control-group">

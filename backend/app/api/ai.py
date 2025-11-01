@@ -34,6 +34,17 @@ class ImprovementResponse(BaseModel):
     model: str
 
 
+class TitleSuggestionRequest(BaseModel):
+    content: str
+    title_style: str = "click_bait"
+    temperature: float = 0.7
+
+
+class TitleSuggestionResponse(BaseModel):
+    titles: list[str]
+    model: str
+
+
 @router.post("/continue", response_model=ContinuationResponse)
 async def generate_continuation(request: ContinuationRequest):
     """Generate text continuation based on context"""
@@ -123,6 +134,51 @@ async def improve_text(request: ImprovementRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error improving text: {str(e)}"
+        )
+
+
+@router.post("/suggest-title", response_model=TitleSuggestionResponse)
+async def suggest_title(request: TitleSuggestionRequest):
+    """Generate title suggestions based on content"""
+    start_time = time.time()
+    request_id = id(request)
+
+    logger.info(f"[{request_id}] Received title suggestion request - content length: {len(request.content)}, title_style: {request.title_style}")
+    logger.debug(f"[{request_id}] Content preview: {request.content[:100]}...")
+
+    # Check if model is available
+    logger.info(f"[{request_id}] Checking model availability...")
+    if not llm_service.check_model_available():
+        logger.error(f"[{request_id}] No LLM provider available")
+        raise HTTPException(
+            status_code=503,
+            detail=f"No LLM provider available. Please ensure Groq API key is set or Ollama is running."
+        )
+    logger.info(f"[{request_id}] LLM provider is available")
+
+    try:
+        logger.info(f"[{request_id}] Starting title generation with llm_service...")
+        titles = await llm_service.suggest_title(
+            content=request.content,
+            title_style=request.title_style,
+            temperature=request.temperature
+        )
+
+        elapsed_time = time.time() - start_time
+        logger.info(f"[{request_id}] Title generation completed in {elapsed_time:.2f}s - generated {len(titles)} titles")
+        logger.debug(f"[{request_id}] Titles: {titles}")
+
+        return TitleSuggestionResponse(
+            titles=titles,
+            model=llm_service.model
+        )
+
+    except Exception as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"[{request_id}] Error generating titles after {elapsed_time:.2f}s: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating title suggestions: {str(e)}"
         )
 
 
