@@ -1,0 +1,70 @@
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+import os
+from pathlib import Path
+
+from .api import projects_router, ai_router
+from .database import engine, Base
+from .config import get_settings
+
+settings = get_settings()
+
+# Create database tables
+Base.metadata.create_all(bind=engine)
+
+# Create FastAPI app
+app = FastAPI(
+    title="Author's Cursor API",
+    description="Smart writing IDE for book authors",
+    version="0.1.0",
+    debug=settings.debug,
+)
+
+# CORS middleware for development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include API routers
+app.include_router(projects_router)
+app.include_router(ai_router)
+
+
+# Health check endpoint
+@app.get("/api/health")
+def health_check():
+    return {"status": "healthy", "version": "0.1.0"}
+
+
+# Serve static files (React build)
+static_dir = Path(__file__).parent.parent / "static"
+
+if static_dir.exists():
+    # Mount static files
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+    # Serve index.html for all non-API routes (SPA fallback)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Don't serve SPA for API routes
+        if full_path.startswith("api/"):
+            return {"error": "Not found"}
+
+        index_file = static_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        return {"error": "Frontend not built yet"}
+else:
+    @app.get("/")
+    def root():
+        return {
+            "message": "Author's Cursor API",
+            "docs": "/docs",
+            "frontend": "not built yet - run build script first"
+        }
