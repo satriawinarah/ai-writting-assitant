@@ -9,12 +9,25 @@ export default function Editor({ chapter, onUpdate }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [contextLines, setContextLines] = useState(10); // Default to 10 lines
+  const [writingStyle, setWritingStyle] = useState('puitis'); // Default writing style
   const [selectedText, setSelectedText] = useState('');
   const [showImprovementPanel, setShowImprovementPanel] = useState(false);
   const [improvementInstruction, setImprovementInstruction] = useState('Tolong poles teks berikut agar lebih hidup, jelas, dan memiliki gaya bahasa yang menarik serta alami untuk dibaca, tanpa mengubah inti cerita atau suasana emosinya.');
   const [improvedText, setImprovedText] = useState(null);
   const [improvementLoading, setImprovementLoading] = useState(false);
   const [improvementError, setImprovementError] = useState(null);
+
+  // Writing styles definition
+  const writingStyles = [
+    { value: 'puitis', label: 'Puitis & Mendalam' },
+    { value: 'naratif', label: 'Naratif Langsung' },
+    { value: 'melankolik', label: 'Melankolik' },
+    { value: 'dramatis', label: 'Dramatis' },
+    { value: 'deskriptif', label: 'Deskriptif Sensorik' },
+    { value: 'filosofis', label: 'Filosofis' },
+    { value: 'romantis', label: 'Romantis' },
+    { value: 'realis', label: 'Realis Sosial' },
+  ];
 
   const editor = useEditor({
     extensions: [
@@ -73,7 +86,7 @@ export default function Editor({ chapter, onUpdate }) {
     setSuggestion(null);
 
     try {
-      const response = await aiAPI.continue(context);
+      const response = await aiAPI.continue(context, { writingStyle });
       setSuggestion(response.data.continuation);
     } catch (err) {
       console.error('Error generating suggestion:', err);
@@ -121,7 +134,7 @@ export default function Editor({ chapter, onUpdate }) {
     setImprovedText(null);
 
     try {
-      const response = await aiAPI.improve(selectedText, improvementInstruction);
+      const response = await aiAPI.improve(selectedText, improvementInstruction, { writingStyle });
       setImprovedText(response.data.improved_text);
     } catch (err) {
       console.error('Error improving text:', err);
@@ -219,6 +232,22 @@ export default function Editor({ chapter, onUpdate }) {
         )}
 
         <div className="suggestion-controls">
+          <div className="control-group">
+            <label htmlFor="writingStyle">Writing Style:</label>
+            <select
+              id="writingStyle"
+              value={writingStyle}
+              onChange={(e) => setWritingStyle(e.target.value)}
+              className="style-select"
+            >
+              {writingStyles.map((style) => (
+                <option key={style.value} value={style.value}>
+                  {style.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="control-group">
             <label htmlFor="contextLines">Context Lines:</label>
             <input

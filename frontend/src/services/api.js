@@ -28,13 +28,15 @@ export const chaptersAPI = {
 export const aiAPI = {
   continue: (context, options = {}) => api.post('/ai/continue', {
     context,
-    max_tokens: options.maxTokens || 150,
+    max_tokens: options.maxTokens || 2000,
     temperature: options.temperature || 0.7,
+    writing_style: options.writingStyle || 'puitis',
   }),
   improve: (text, instruction, options = {}) => api.post('/ai/improve', {
     text,
     instruction: instruction || 'Tolong poles teks berikut agar lebih hidup, jelas, dan memiliki gaya bahasa yang menarik serta alami untuk dibaca, tanpa mengubah inti cerita atau suasana emosinya.',
     temperature: options.temperature || 0.7,
+    writing_style: options.writingStyle || 'puitis',
   }),
   status: () => api.get('/ai/status'),
 };

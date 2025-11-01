@@ -12,8 +12,9 @@ router = APIRouter(prefix="/api/ai", tags=["ai"])
 
 class ContinuationRequest(BaseModel):
     context: str
-    max_tokens: int = 150
+    max_tokens: int = 2000
     temperature: float = 0.7
+    writing_style: str = "puitis"
 
 
 class ContinuationResponse(BaseModel):
@@ -25,6 +26,7 @@ class ImprovementRequest(BaseModel):
     text: str
     instruction: str = "Tolong poles teks berikut agar lebih hidup, jelas, dan memiliki gaya bahasa yang menarik serta alami untuk dibaca, tanpa mengubah inti cerita atau suasana emosinya."
     temperature: float = 0.7
+    writing_style: str = "puitis"
 
 
 class ImprovementResponse(BaseModel):
@@ -56,7 +58,8 @@ async def generate_continuation(request: ContinuationRequest):
         continuation = await llm_service.generate_continuation(
             context=request.context,
             max_tokens=request.max_tokens,
-            temperature=request.temperature
+            temperature=request.temperature,
+            writing_style=request.writing_style
         )
 
         elapsed_time = time.time() - start_time
@@ -101,7 +104,8 @@ async def improve_text(request: ImprovementRequest):
         improved_text = await llm_service.improve_text(
             text=request.text,
             instruction=request.instruction,
-            temperature=request.temperature
+            temperature=request.temperature,
+            writing_style=request.writing_style
         )
 
         elapsed_time = time.time() - start_time
