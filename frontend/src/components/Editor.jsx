@@ -12,7 +12,8 @@ export default function Editor({ chapter, onUpdate }) {
   const [writingStyle, setWritingStyle] = useState('puitis'); // Default writing style
   const [selectedText, setSelectedText] = useState('');
   const [showImprovementPanel, setShowImprovementPanel] = useState(false);
-  const [improvementInstruction, setImprovementInstruction] = useState('Tolong poles teks berikut agar lebih hidup, jelas, dan memiliki gaya bahasa yang menarik serta alami untuk dibaca, tanpa mengubah inti cerita atau suasana emosinya.');
+  const [improvementInstruction, setImprovementInstruction] = useState('Perbaiki teks berikut agar lebih jelas dan mudah dimengerti.');
+  const [improvementWritingStyle, setImprovementWritingStyle] = useState('puitis'); // Separate writing style for improvement
   const [improvedText, setImprovedText] = useState(null);
   const [improvementLoading, setImprovementLoading] = useState(false);
   const [improvementError, setImprovementError] = useState(null);
@@ -134,7 +135,7 @@ export default function Editor({ chapter, onUpdate }) {
     setImprovedText(null);
 
     try {
-      const response = await aiAPI.improve(selectedText, improvementInstruction, { writingStyle });
+      const response = await aiAPI.improve(selectedText, improvementInstruction, { writingStyle: improvementWritingStyle });
       setImprovedText(response.data.improved_text);
     } catch (err) {
       console.error('Error improving text:', err);
@@ -176,6 +177,22 @@ export default function Editor({ chapter, onUpdate }) {
             <div className="selected-text-preview">
               <strong>Selected:</strong> {selectedText.substring(0, 100)}
               {selectedText.length > 100 && '...'}
+            </div>
+
+            <div className="control-group">
+              <label htmlFor="improvementWritingStyle">Writing Style:</label>
+              <select
+                id="improvementWritingStyle"
+                value={improvementWritingStyle}
+                onChange={(e) => setImprovementWritingStyle(e.target.value)}
+                className="style-select"
+              >
+                {writingStyles.map((style) => (
+                  <option key={style.value} value={style.value}>
+                    {style.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="control-group">
