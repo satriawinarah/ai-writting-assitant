@@ -171,21 +171,33 @@ Tulis dengan observasi sosial yang tajam dan realistic. Selalu tulis dalam Bahas
         self.model = self.settings.groq_model
         print(f"✓ Groq client initialized with model: {self.model}")
 
-    async def generate_continuation(self, context: str, max_tokens: int = 2000, temperature: float = 0.7, writing_style: str = "puitis") -> str:
+    async def generate_continuation(self, context: str, max_tokens: int = 2000, temperature: float = 0.7, writing_style: str = "puitis", paragraph_count: int = 1, brief_idea: str = "") -> str:
         """
         Generate text continuation based on context using Groq API.
 
         Args:
-            context: The current text context (last few paragraphs)
+            context: The full text context from the editor
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature (0.0-1.0)
             writing_style: Writing style to use (puitis, naratif, melankolik, etc.)
+            paragraph_count: Number of paragraphs to generate (1-5)
+            brief_idea: Optional brief idea or direction for the continuation
 
         Returns:
             Generated continuation text
         """
         # Get style configuration, default to puitis if not found
         style_config = self.WRITING_STYLES.get(writing_style, self.WRITING_STYLES["puitis"])
+
+        # Build the task instruction based on whether brief_idea is provided
+        if brief_idea and brief_idea.strip():
+            task_instruction = f"""Tugas: Lanjutkan cerita di atas dengan gaya sastrawi yang sama. Pertahankan nada, ritme, dan kedalaman emosi.
+
+Arah cerita: {brief_idea.strip()}
+
+Tulis {paragraph_count} paragraf yang mengembangkan ide tersebut dengan natural dan mengalir. Pastikan kalimat terakhir selesai dengan sempurna."""
+        else:
+            task_instruction = f"""Tugas: Lanjutkan cerita di atas dengan gaya sastrawi yang sama. Pertahankan nada, ritme, dan kedalaman emosi. Tulis {paragraph_count} paragraf yang mengalir natural. Pastikan kalimat terakhir selesai dengan sempurna."""
 
         messages = [
             {
@@ -197,7 +209,7 @@ Tulis dengan observasi sosial yang tajam dan realistic. Selalu tulis dalam Bahas
                 "content": f"""Konteks:
 {context}
 
-Tugas: Lanjutkan cerita di atas dengan gaya sastrawi yang sama. Pertahankan nada, ritme, dan kedalaman emosi. Tulis 1-2 paragraf yang mengalir natural. Pastikan kalimat terakhir selesai dengan sempurna.
+{task_instruction}
 
 Kelanjutan:"""
             }

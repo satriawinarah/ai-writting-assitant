@@ -31,6 +31,8 @@ export const aiAPI = {
     max_tokens: options.maxTokens || 2000,
     temperature: options.temperature || 0.7,
     writing_style: options.writingStyle || 'puitis',
+    paragraph_count: options.paragraphCount || 1,
+    brief_idea: options.briefIdea || '',
   }),
   improve: (text, instruction, options = {}) => api.post('/ai/improve', {
     text,

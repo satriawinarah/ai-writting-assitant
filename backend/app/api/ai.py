@@ -15,6 +15,8 @@ class ContinuationRequest(BaseModel):
     max_tokens: int = 2000
     temperature: float = 0.7
     writing_style: str = "puitis"
+    paragraph_count: int = 1
+    brief_idea: str = ""
 
 
 class ContinuationResponse(BaseModel):
@@ -70,7 +72,9 @@ async def generate_continuation(request: ContinuationRequest):
             context=request.context,
             max_tokens=request.max_tokens,
             temperature=request.temperature,
-            writing_style=request.writing_style
+            writing_style=request.writing_style,
+            paragraph_count=request.paragraph_count,
+            brief_idea=request.brief_idea
         )
 
         elapsed_time = time.time() - start_time

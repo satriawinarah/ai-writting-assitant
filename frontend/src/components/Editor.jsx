@@ -8,8 +8,9 @@ export default function Editor({ chapter, onUpdate }) {
   const [suggestion, setSuggestion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [contextLines, setContextLines] = useState(10); // Default to 10 lines
   const [writingStyle, setWritingStyle] = useState('puitis'); // Default writing style
+  const [paragraphCount, setParagraphCount] = useState(1); // Number of paragraphs to generate
+  const [briefIdea, setBriefIdea] = useState(''); // Optional brief idea for the continuation
   const [selectedText, setSelectedText] = useState('');
   const [showImprovementPanel, setShowImprovementPanel] = useState(false);
   const [improvementInstruction, setImprovementInstruction] = useState('Perbaiki teks berikut agar lebih jelas dan mudah dimengerti.');
@@ -125,17 +126,16 @@ export default function Editor({ chapter, onUpdate }) {
       return;
     }
 
-    // Split text into lines and get last N lines based on contextLines
-    const lines = text.split('\n');
-    const contextLinesToUse = Math.min(contextLines, lines.length);
-    const context = lines.slice(-contextLinesToUse).join('\n');
-
     setLoading(true);
     setError(null);
     setSuggestion(null);
 
     try {
-      const response = await aiAPI.continue(context, { writingStyle });
+      const response = await aiAPI.continue(text, {
+        writingStyle,
+        paragraphCount,
+        briefIdea: briefIdea.trim() || undefined
+      });
       setSuggestion(response.data.continuation);
     } catch (err) {
       console.error('Error generating suggestion:', err);
@@ -163,13 +163,6 @@ export default function Editor({ chapter, onUpdate }) {
 
   const regenerateSuggestion = () => {
     generateSuggestion();
-  };
-
-  const handleContextLinesChange = (e) => {
-    const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value > 0) {
-      setContextLines(value);
-    }
   };
 
   const requestImprovement = async () => {
@@ -404,17 +397,33 @@ export default function Editor({ chapter, onUpdate }) {
           </div>
 
           <div className="control-group">
-            <label htmlFor="contextLines">Context Lines:</label>
-            <input
-              type="number"
-              id="contextLines"
-              min="1"
-              max="100"
-              value={contextLines}
-              onChange={handleContextLinesChange}
-              className="context-input"
+            <label htmlFor="paragraphCount">Number of Paragraphs:</label>
+            <select
+              id="paragraphCount"
+              value={paragraphCount}
+              onChange={(e) => setParagraphCount(parseInt(e.target.value, 10))}
+              className="paragraph-select"
+            >
+              <option value="1">1 paragraph</option>
+              <option value="2">2 paragraphs</option>
+              <option value="3">3 paragraphs</option>
+              <option value="4">4 paragraphs</option>
+              <option value="5">5 paragraphs</option>
+            </select>
+          </div>
+
+          <div className="control-group">
+            <label htmlFor="briefIdea">Brief Idea (Optional):</label>
+            <textarea
+              id="briefIdea"
+              value={briefIdea}
+              onChange={(e) => setBriefIdea(e.target.value)}
+              className="brief-idea-input"
+              rows="2"
+              placeholder="E.g., The character discovers a hidden door..."
             />
           </div>
+
           <button
             className="generate-btn"
             onClick={generateSuggestion}
