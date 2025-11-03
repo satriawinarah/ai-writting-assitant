@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { aiAPI } from '../services/api';
+import Footer from './Footer';
 
 export default function Editor({ chapter, onUpdate }) {
   const [suggestion, setSuggestion] = useState(null);
@@ -40,6 +41,7 @@ export default function Editor({ chapter, onUpdate }) {
     { value: 'filosofis', label: 'Filosofis' },
     { value: 'romantis', label: 'Romantis' },
     { value: 'realis', label: 'Realis Sosial' },
+    { value: 'dialog', label: 'Dialog-Focused' },
   ];
 
   // Title styles definition
@@ -393,25 +395,6 @@ export default function Editor({ chapter, onUpdate }) {
           )}
         </div>
 
-        <div className="model-selection">
-          <h4>Model Settings</h4>
-          <div className="control-group">
-            <label htmlFor="selectedModel">LLM Model:</label>
-            <select
-              id="selectedModel"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="model-select"
-            >
-              {availableModels.map((model) => (
-                <option key={model.value} value={model.value}>
-                  {model.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
         <div className="suggestion-controls">
           <div className="control-group">
             <label htmlFor="writingStyle">Writing Style:</label>
@@ -503,6 +486,12 @@ export default function Editor({ chapter, onUpdate }) {
           </div>
         )}
       </div>
+
+      <Footer
+        selectedModel={selectedModel}
+        onModelChange={setSelectedModel}
+        availableModels={availableModels}
+      />
     </div>
   );
 }
