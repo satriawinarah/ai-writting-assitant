@@ -17,6 +17,7 @@ class ContinuationRequest(BaseModel):
     writing_style: str = "puitis"
     paragraph_count: int = 1
     brief_idea: str = ""
+    model: str = "openai/gpt-oss-120b"
 
 
 class ContinuationResponse(BaseModel):
@@ -29,6 +30,7 @@ class ImprovementRequest(BaseModel):
     instruction: str = "Tolong poles teks berikut agar lebih hidup, jelas, dan memiliki gaya bahasa yang menarik serta alami untuk dibaca, tanpa mengubah inti cerita atau suasana emosinya."
     temperature: float = 0.7
     writing_style: str = "puitis"
+    model: str = "openai/gpt-oss-120b"
 
 
 class ImprovementResponse(BaseModel):
@@ -40,6 +42,7 @@ class TitleSuggestionRequest(BaseModel):
     content: str
     title_style: str = "click_bait"
     temperature: float = 0.7
+    model: str = "openai/gpt-oss-120b"
 
 
 class TitleSuggestionResponse(BaseModel):
@@ -57,24 +60,25 @@ async def generate_continuation(request: ContinuationRequest):
     logger.debug(f"[{request_id}] Context preview: {request.context[:100]}...")
 
     # Check if model is available
-    logger.info(f"[{request_id}] Checking model availability...")
-    if not llm_service.check_model_available():
-        logger.error(f"[{request_id}] No LLM provider available")
+    logger.info(f"[{request_id}] Checking model availability for {request.model}...")
+    if not llm_service.check_model_available(request.model):
+        logger.error(f"[{request_id}] Model {request.model} not available")
         raise HTTPException(
             status_code=503,
-            detail=f"No LLM provider available. Please ensure Groq API key is set or Ollama is running."
+            detail=f"Model {request.model} is not available. Please check API key configuration."
         )
-    logger.info(f"[{request_id}] LLM provider is available")
+    logger.info(f"[{request_id}] Model {request.model} is available")
 
     try:
-        logger.info(f"[{request_id}] Starting generation with llm_service...")
+        logger.info(f"[{request_id}] Starting generation with llm_service using {request.model}...")
         continuation = await llm_service.generate_continuation(
             context=request.context,
             max_tokens=request.max_tokens,
             temperature=request.temperature,
             writing_style=request.writing_style,
             paragraph_count=request.paragraph_count,
-            brief_idea=request.brief_idea
+            brief_idea=request.brief_idea,
+            model=request.model
         )
 
         elapsed_time = time.time() - start_time
@@ -83,7 +87,7 @@ async def generate_continuation(request: ContinuationRequest):
 
         return ContinuationResponse(
             continuation=continuation,
-            model=llm_service.model
+            model=request.model
         )
 
     except Exception as e:
@@ -105,22 +109,23 @@ async def improve_text(request: ImprovementRequest):
     logger.debug(f"[{request_id}] Text preview: {request.text[:100]}...")
 
     # Check if model is available
-    logger.info(f"[{request_id}] Checking model availability...")
-    if not llm_service.check_model_available():
-        logger.error(f"[{request_id}] No LLM provider available")
+    logger.info(f"[{request_id}] Checking model availability for {request.model}...")
+    if not llm_service.check_model_available(request.model):
+        logger.error(f"[{request_id}] Model {request.model} not available")
         raise HTTPException(
             status_code=503,
-            detail=f"No LLM provider available. Please ensure Groq API key is set or Ollama is running."
+            detail=f"Model {request.model} is not available. Please check API key configuration."
         )
-    logger.info(f"[{request_id}] LLM provider is available")
+    logger.info(f"[{request_id}] Model {request.model} is available")
 
     try:
-        logger.info(f"[{request_id}] Starting improvement with llm_service...")
+        logger.info(f"[{request_id}] Starting improvement with llm_service using {request.model}...")
         improved_text = await llm_service.improve_text(
             text=request.text,
             instruction=request.instruction,
             temperature=request.temperature,
-            writing_style=request.writing_style
+            writing_style=request.writing_style,
+            model=request.model
         )
 
         elapsed_time = time.time() - start_time
@@ -129,7 +134,7 @@ async def improve_text(request: ImprovementRequest):
 
         return ImprovementResponse(
             improved_text=improved_text,
-            model=llm_service.model
+            model=request.model
         )
 
     except Exception as e:
@@ -151,21 +156,22 @@ async def suggest_title(request: TitleSuggestionRequest):
     logger.debug(f"[{request_id}] Content preview: {request.content[:100]}...")
 
     # Check if model is available
-    logger.info(f"[{request_id}] Checking model availability...")
-    if not llm_service.check_model_available():
-        logger.error(f"[{request_id}] No LLM provider available")
+    logger.info(f"[{request_id}] Checking model availability for {request.model}...")
+    if not llm_service.check_model_available(request.model):
+        logger.error(f"[{request_id}] Model {request.model} not available")
         raise HTTPException(
             status_code=503,
-            detail=f"No LLM provider available. Please ensure Groq API key is set or Ollama is running."
+            detail=f"Model {request.model} is not available. Please check API key configuration."
         )
-    logger.info(f"[{request_id}] LLM provider is available")
+    logger.info(f"[{request_id}] Model {request.model} is available")
 
     try:
-        logger.info(f"[{request_id}] Starting title generation with llm_service...")
+        logger.info(f"[{request_id}] Starting title generation with llm_service using {request.model}...")
         titles = await llm_service.suggest_title(
             content=request.content,
             title_style=request.title_style,
-            temperature=request.temperature
+            temperature=request.temperature,
+            model=request.model
         )
 
         elapsed_time = time.time() - start_time
@@ -174,7 +180,7 @@ async def suggest_title(request: TitleSuggestionRequest):
 
         return TitleSuggestionResponse(
             titles=titles,
-            model=llm_service.model
+            model=request.model
         )
 
     except Exception as e:

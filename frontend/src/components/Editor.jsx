@@ -22,6 +22,13 @@ export default function Editor({ chapter, onUpdate }) {
   const [titleSuggestions, setTitleSuggestions] = useState(null);
   const [titleLoading, setTitleLoading] = useState(false);
   const [titleError, setTitleError] = useState(null);
+  const [selectedModel, setSelectedModel] = useState('openai/gpt-oss-120b'); // Default model
+
+  // Available models definition
+  const availableModels = [
+    { value: 'openai/gpt-oss-120b', label: 'OpenAI GPT OSS 120B' },
+    { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile' },
+  ];
 
   // Writing styles definition
   const writingStyles = [
@@ -134,7 +141,8 @@ export default function Editor({ chapter, onUpdate }) {
       const response = await aiAPI.continue(text, {
         writingStyle,
         paragraphCount,
-        briefIdea: briefIdea.trim() || undefined
+        briefIdea: briefIdea.trim() || undefined,
+        model: selectedModel
       });
       setSuggestion(response.data.continuation);
     } catch (err) {
@@ -176,7 +184,10 @@ export default function Editor({ chapter, onUpdate }) {
     setImprovedText(null);
 
     try {
-      const response = await aiAPI.improve(selectedText, improvementInstruction, { writingStyle: improvementWritingStyle });
+      const response = await aiAPI.improve(selectedText, improvementInstruction, {
+        writingStyle: improvementWritingStyle,
+        model: selectedModel
+      });
       setImprovedText(response.data.improved_text);
     } catch (err) {
       console.error('Error improving text:', err);
@@ -217,7 +228,10 @@ export default function Editor({ chapter, onUpdate }) {
     setTitleSuggestions(null);
 
     try {
-      const response = await aiAPI.suggestTitle(content, { titleStyle });
+      const response = await aiAPI.suggestTitle(content, {
+        titleStyle,
+        model: selectedModel
+      });
       setTitleSuggestions(response.data.titles);
     } catch (err) {
       console.error('Error generating title suggestions:', err);
@@ -377,6 +391,25 @@ export default function Editor({ chapter, onUpdate }) {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="model-selection">
+          <h4>Model Settings</h4>
+          <div className="control-group">
+            <label htmlFor="selectedModel">LLM Model:</label>
+            <select
+              id="selectedModel"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="model-select"
+            >
+              {availableModels.map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="suggestion-controls">

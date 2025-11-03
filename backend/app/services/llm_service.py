@@ -162,18 +162,22 @@ Tulis dengan observasi sosial yang tajam dan realistic. Selalu tulis dalam Bahas
 
     def __init__(self):
         self.settings = get_settings()
+        print(f"✓ LLM Service initialized")
 
-        # Initialize Groq client
-        if not self.settings.groq_api_key:
-            raise ValueError("GROQ_API_KEY is required. Please set it in your .env file.")
+    def _get_client_for_model(self, model: str):
+        """Get the appropriate client for the given model"""
+        api_key = self.settings.get_api_key_for_model(model)
 
-        self.client = Groq(api_key=self.settings.groq_api_key)
-        self.model = self.settings.groq_model
-        print(f"✓ Groq client initialized with model: {self.model}")
+        if not api_key:
+            raise ValueError(f"No API key configured for model: {model}")
 
-    async def generate_continuation(self, context: str, max_tokens: int = 2000, temperature: float = 0.7, writing_style: str = "puitis", paragraph_count: int = 1, brief_idea: str = "") -> str:
+        # For now, we use Groq client for all models
+        # OpenRouter uses OpenAI-compatible API, so Groq client should work
+        return Groq(api_key=api_key)
+
+    async def generate_continuation(self, context: str, max_tokens: int = 2000, temperature: float = 0.7, writing_style: str = "puitis", paragraph_count: int = 1, brief_idea: str = "", model: str = "openai/gpt-oss-120b") -> str:
         """
-        Generate text continuation based on context using Groq API.
+        Generate text continuation based on context using LLM API.
 
         Args:
             context: The full text context from the editor
@@ -182,10 +186,14 @@ Tulis dengan observasi sosial yang tajam dan realistic. Selalu tulis dalam Bahas
             writing_style: Writing style to use (puitis, naratif, melankolik, etc.)
             paragraph_count: Number of paragraphs to generate (1-5)
             brief_idea: Optional brief idea or direction for the continuation
+            model: Model to use for generation
 
         Returns:
             Generated continuation text
         """
+        # Get client for the specified model
+        client = self._get_client_for_model(model)
+
         # Get style configuration, default to puitis if not found
         style_config = self.WRITING_STYLES.get(writing_style, self.WRITING_STYLES["puitis"])
 
@@ -215,8 +223,8 @@ Kelanjutan:"""
             }
         ]
 
-        response = self.client.chat.completions.create(
-            model=self.model,
+        response = client.chat.completions.create(
+            model=model,
             messages=messages,
             max_tokens=max_tokens,
             temperature=temperature,
@@ -226,19 +234,23 @@ Kelanjutan:"""
         generated_text = response.choices[0].message.content.strip()
         return generated_text
 
-    async def improve_text(self, text: str, instruction: str = "Tolong poles teks berikut agar lebih hidup, jelas, dan memiliki gaya bahasa yang menarik serta alami untuk dibaca, tanpa mengubah inti cerita atau suasana emosinya.", temperature: float = 0.7, writing_style: str = "puitis") -> str:
+    async def improve_text(self, text: str, instruction: str = "Tolong poles teks berikut agar lebih hidup, jelas, dan memiliki gaya bahasa yang menarik serta alami untuk dibaca, tanpa mengubah inti cerita atau suasana emosinya.", temperature: float = 0.7, writing_style: str = "puitis", model: str = "openai/gpt-oss-120b") -> str:
         """
-        Improve text based on instruction using Groq API.
+        Improve text based on instruction using LLM API.
 
         Args:
             text: The text to improve
             instruction: Instruction for how to improve the text
             temperature: Sampling temperature (0.0-1.0)
             writing_style: Writing style to use (puitis, naratif, melankolik, etc.)
+            model: Model to use for generation
 
         Returns:
             Improved text
         """
+        # Get client for the specified model
+        client = self._get_client_for_model(model)
+
         # Get style configuration, default to puitis if not found
         style_config = self.WRITING_STYLES.get(writing_style, self.WRITING_STYLES["puitis"])
 
@@ -260,8 +272,8 @@ Teks yang Diperbaiki:"""
             }
         ]
 
-        response = self.client.chat.completions.create(
-            model=self.model,
+        response = client.chat.completions.create(
+            model=model,
             messages=messages,
             temperature=temperature,
             stop=["Teks Asli:", "Tugas:"]
@@ -270,18 +282,22 @@ Teks yang Diperbaiki:"""
         improved_text = response.choices[0].message.content.strip()
         return improved_text
 
-    async def suggest_title(self, content: str, title_style: str = "click_bait", temperature: float = 0.7) -> list[str]:
+    async def suggest_title(self, content: str, title_style: str = "click_bait", temperature: float = 0.7, model: str = "openai/gpt-oss-120b") -> list[str]:
         """
-        Generate title suggestions based on content using Groq API.
+        Generate title suggestions based on content using LLM API.
 
         Args:
             content: The story content to generate titles for
             title_style: Title style to use (click_bait, philosophy, mystery, etc.)
             temperature: Sampling temperature (0.0-1.0)
+            model: Model to use for generation
 
         Returns:
             List of 5 suggested titles
         """
+        # Get client for the specified model
+        client = self._get_client_for_model(model)
+
         # Get style configuration, default to click_bait if not found
         style_config = self.TITLE_STYLES.get(title_style, self.TITLE_STYLES["click_bait"])
         style_desc = style_config["description"]
@@ -313,8 +329,8 @@ Judul:"""
             }
         ]
 
-        response = self.client.chat.completions.create(
-            model=self.model,
+        response = client.chat.completions.create(
+            model=model,
             messages=messages,
             temperature=temperature,
             max_tokens=500
@@ -337,16 +353,29 @@ Judul:"""
         # Return at least 5 titles, or all if we got less
         return titles[:5] if len(titles) >= 5 else titles
 
-    def check_model_available(self) -> bool:
-        """Check if Groq API is available"""
-        return bool(self.client and self.settings.groq_api_key)
+    def check_model_available(self, model: str = "openai/gpt-oss-120b") -> bool:
+        """Check if the specified model is available"""
+        try:
+            api_key = self.settings.get_api_key_for_model(model)
+            return bool(api_key)
+        except:
+            return False
 
     def get_provider_info(self) -> dict:
-        """Get information about current provider configuration"""
+        """Get information about available models and their configuration"""
         return {
-            "provider": "groq",
-            "model": self.model,
-            "available": self.check_model_available()
+            "available_models": [
+                {
+                    "model": "openai/gpt-oss-120b",
+                    "provider": "openrouter",
+                    "available": bool(self.settings.openrouter_api_key)
+                },
+                {
+                    "model": "llama-3.3-70b-versatile",
+                    "provider": "groq",
+                    "available": bool(self.settings.groq_api_key)
+                }
+            ]
         }
 
 
