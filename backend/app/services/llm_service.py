@@ -361,7 +361,7 @@ Judul:"""
             model=model,
             messages=messages,
             temperature=temperature,
-            max_tokens=500
+            max_tokens=10000
         )
 
         # Parse the response to extract titles

@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/ai", tags=["ai"])
 
 class ContinuationRequest(BaseModel):
     context: str
-    max_tokens: int = 2000
+    max_tokens: int = 10000
     temperature: float = 0.7
     writing_style: str = "puitis"
     paragraph_count: int = 1

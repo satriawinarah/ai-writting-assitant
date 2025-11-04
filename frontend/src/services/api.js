@@ -28,7 +28,7 @@ export const chaptersAPI = {
 export const aiAPI = {
   continue: (context, options = {}) => api.post('/ai/continue', {
     context,
-    max_tokens: options.maxTokens || 2000,
+    max_tokens: options.maxTokens || 10000,
     temperature: options.temperature || 0.7,
     writing_style: options.writingStyle || 'puitis',
     paragraph_count: options.paragraphCount || 1,

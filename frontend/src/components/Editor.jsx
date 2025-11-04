@@ -418,7 +418,7 @@ export default function Editor({ chapter, onUpdate }) {
               id="paragraphCount"
               value={paragraphCount}
               onChange={(e) => setParagraphCount(parseInt(e.target.value, 10))}
-              className="paragraph-select"
+              className="style-select"
             >
               <option value="1">1 paragraph</option>
               <option value="2">2 paragraphs</option>
