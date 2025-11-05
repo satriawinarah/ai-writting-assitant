@@ -12,6 +12,10 @@ export default function App() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showChapterModal, setShowChapterModal] = useState(false);
   const [saveTimeout, setSaveTimeout] = useState(null);
+  const [editingProjectTitle, setEditingProjectTitle] = useState(false);
+  const [editingChapterId, setEditingChapterId] = useState(null);
+  const [tempProjectTitle, setTempProjectTitle] = useState('');
+  const [tempChapterTitle, setTempChapterTitle] = useState('');
 
   // Load projects on mount
   useEffect(() => {
@@ -103,6 +107,71 @@ export default function App() {
     setActiveChapter(chapter);
   };
 
+  const handleProjectTitleDoubleClick = () => {
+    setEditingProjectTitle(true);
+    setTempProjectTitle(activeProject.title);
+  };
+
+  const handleProjectTitleChange = (e) => {
+    setTempProjectTitle(e.target.value);
+  };
+
+  const handleProjectTitleSave = async () => {
+    if (!activeProject || !tempProjectTitle.trim()) {
+      setEditingProjectTitle(false);
+      return;
+    }
+
+    try {
+      await projectsAPI.update(activeProject.id, { title: tempProjectTitle.trim() });
+      await loadProject(activeProject);
+      await loadProjects();
+      setEditingProjectTitle(false);
+    } catch (error) {
+      console.error('Error updating project title:', error);
+    }
+  };
+
+  const handleProjectTitleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleProjectTitleSave();
+    } else if (e.key === 'Escape') {
+      setEditingProjectTitle(false);
+    }
+  };
+
+  const handleChapterTitleDoubleClick = (chapter) => {
+    setEditingChapterId(chapter.id);
+    setTempChapterTitle(chapter.title);
+  };
+
+  const handleChapterTitleChange = (e) => {
+    setTempChapterTitle(e.target.value);
+  };
+
+  const handleChapterTitleSave = async (chapterId) => {
+    if (!activeProject || !tempChapterTitle.trim()) {
+      setEditingChapterId(null);
+      return;
+    }
+
+    try {
+      await chaptersAPI.update(activeProject.id, chapterId, { title: tempChapterTitle.trim() });
+      await loadProject(activeProject);
+      setEditingChapterId(null);
+    } catch (error) {
+      console.error('Error updating chapter title:', error);
+    }
+  };
+
+  const handleChapterTitleKeyDown = (e, chapterId) => {
+    if (e.key === 'Enter') {
+      handleChapterTitleSave(chapterId);
+    } else if (e.key === 'Escape') {
+      setEditingChapterId(null);
+    }
+  };
+
   return (
     <div className="app">
       <Sidebar
@@ -116,7 +185,25 @@ export default function App() {
         {activeProject && activeChapter ? (
           <>
             <div className="editor-header">
-              <h2>{activeProject.title}</h2>
+              {editingProjectTitle ? (
+                <input
+                  type="text"
+                  value={tempProjectTitle}
+                  onChange={handleProjectTitleChange}
+                  onBlur={handleProjectTitleSave}
+                  onKeyDown={handleProjectTitleKeyDown}
+                  autoFocus
+                  className="project-title-input"
+                />
+              ) : (
+                <h2
+                  onDoubleClick={handleProjectTitleDoubleClick}
+                  title="Double-click to edit"
+                  style={{ cursor: 'pointer' }}
+                >
+                  {activeProject.title}
+                </h2>
+              )}
               <div className="editor-controls">
                 <button onClick={() => setShowChapterModal(true)}>
                   + New Chapter
@@ -126,8 +213,26 @@ export default function App() {
                     key={chapter.id}
                     className={chapter.id === activeChapter.id ? 'primary' : ''}
                     onClick={() => handleSelectChapter(chapter)}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      handleChapterTitleDoubleClick(chapter);
+                    }}
+                    title="Double-click to edit"
                   >
-                    {chapter.title}
+                    {editingChapterId === chapter.id ? (
+                      <input
+                        type="text"
+                        value={tempChapterTitle}
+                        onChange={handleChapterTitleChange}
+                        onBlur={() => handleChapterTitleSave(chapter.id)}
+                        onKeyDown={(e) => handleChapterTitleKeyDown(e, chapter.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                        className="chapter-title-input"
+                      />
+                    ) : (
+                      chapter.title
+                    )}
                   </button>
                 ))}
               </div>
