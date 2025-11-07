@@ -1,3 +1,3 @@
-from .project import Project, Chapter
+from .project import User, Project, Chapter
 
-__all__ = ["Project", "Chapter"]
+__all__ = ["User", "Project", "Chapter"]

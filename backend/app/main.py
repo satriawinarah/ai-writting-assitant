@@ -5,14 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from pathlib import Path
 
-from .api import projects_router, ai_router
+from .api import projects_router, ai_router, auth_router
 from .database import engine, Base
 from .config import get_settings
 
 settings = get_settings()
 
 # Create database tables
-Base.metadata.create_all(bind=engine)
+# NOTE: Using Alembic for migrations now
+# Base.metadata.create_all(bind=engine)
 
 # Create FastAPI app
 app = FastAPI(
@@ -32,6 +33,7 @@ app.add_middleware(
 )
 
 # Include API routers
+app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(ai_router)
 

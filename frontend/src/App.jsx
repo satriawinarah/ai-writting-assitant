@@ -3,9 +3,17 @@ import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
 import ProjectModal from './components/ProjectModal';
 import ChapterModal from './components/ChapterModal';
-import { projectsAPI, chaptersAPI } from './services/api';
+import Login from './components/Login';
+import Register from './components/Register';
+import { projectsAPI, chaptersAPI, authAPI } from './services/api';
 
 export default function App() {
+  // Authentication state
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showRegister, setShowRegister] = useState(false);
+
+  // App state
   const [projects, setProjects] = useState([]);
   const [activeProject, setActiveProject] = useState(null);
   const [activeChapter, setActiveChapter] = useState(null);
@@ -17,10 +25,61 @@ export default function App() {
   const [tempProjectTitle, setTempProjectTitle] = useState('');
   const [tempChapterTitle, setTempChapterTitle] = useState('');
 
-  // Load projects on mount
+  // Check authentication on mount
   useEffect(() => {
-    loadProjects();
+    checkAuth();
   }, []);
+
+  // Load projects when user is authenticated
+  useEffect(() => {
+    if (user) {
+      loadProjects();
+    }
+  }, [user]);
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await authAPI.getCurrentUser();
+      setUser(response.data);
+    } catch (error) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async (credentials) => {
+    const response = await authAPI.login(credentials);
+    localStorage.setItem('token', response.data.access_token);
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+    setUser(response.data.user);
+  };
+
+  const handleRegister = async (userData) => {
+    await authAPI.register(userData);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      setProjects([]);
+      setActiveProject(null);
+      setActiveChapter(null);
+    }
+  };
 
   const loadProjects = async () => {
     try {
@@ -172,6 +231,34 @@ export default function App() {
     }
   };
 
+  // Show loading screen while checking auth
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <h2>Loading...</h2>
+      </div>
+    );
+  }
+
+  // Show login/register if not authenticated
+  if (!user) {
+    if (showRegister) {
+      return (
+        <Register
+          onRegister={handleRegister}
+          onSwitchToLogin={() => setShowRegister(false)}
+        />
+      );
+    }
+    return (
+      <Login
+        onLogin={handleLogin}
+        onSwitchToRegister={() => setShowRegister(true)}
+      />
+    );
+  }
+
+  // Show main app if authenticated
   return (
     <div className="app">
       <Sidebar
@@ -182,6 +269,13 @@ export default function App() {
       />
 
       <div className="main-content">
+        <div className="user-bar">
+          <span>Welcome, {user.full_name}</span>
+          <button onClick={handleLogout} className="logout-button">
+            Logout
+          </button>
+        </div>
+
         {activeProject && activeChapter ? (
           <>
             <div className="editor-header">

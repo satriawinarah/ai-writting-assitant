@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from ..database import get_db
-from ..models import Project, Chapter
+from ..models import Project, Chapter, User
 from ..schemas import (
     Project as ProjectSchema,
     ProjectCreate,
@@ -13,14 +13,18 @@ from ..schemas import (
     ChapterCreate,
     ChapterUpdate,
 )
+from ..dependencies.auth import get_current_approved_user
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
 @router.get("", response_model=List[ProjectList])
-def list_projects(db: Session = Depends(get_db)):
-    """List all projects"""
-    projects = db.query(Project).order_by(Project.updated_at.desc()).all()
+def list_projects(
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
+):
+    """List all projects for the current user"""
+    projects = db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.updated_at.desc()).all()
     return [
         ProjectList(
             id=p.id,
@@ -35,9 +39,13 @@ def list_projects(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=ProjectSchema)
-def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
-    """Create a new project"""
-    db_project = Project(**project.model_dump())
+def create_project(
+    project: ProjectCreate,
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new project for the current user"""
+    db_project = Project(**project.model_dump(), user_id=current_user.id)
     db.add(db_project)
     db.commit()
     db.refresh(db_project)
@@ -45,9 +53,16 @@ def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}", response_model=ProjectSchema)
-def get_project(project_id: int, db: Session = Depends(get_db)):
-    """Get a project by ID"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+def get_project(
+    project_id: int,
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
+):
+    """Get a project by ID (only if it belongs to current user)"""
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
@@ -55,10 +70,16 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{project_id}", response_model=ProjectSchema)
 def update_project(
-    project_id: int, project: ProjectUpdate, db: Session = Depends(get_db)
+    project_id: int,
+    project: ProjectUpdate,
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
 ):
-    """Update a project"""
-    db_project = db.query(Project).filter(Project.id == project_id).first()
+    """Update a project (only if it belongs to current user)"""
+    db_project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -71,9 +92,16 @@ def update_project(
 
 
 @router.delete("/{project_id}")
-def delete_project(project_id: int, db: Session = Depends(get_db)):
-    """Delete a project"""
-    db_project = db.query(Project).filter(Project.id == project_id).first()
+def delete_project(
+    project_id: int,
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a project (only if it belongs to current user)"""
+    db_project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -85,10 +113,16 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
 # Chapter endpoints
 @router.post("/{project_id}/chapters", response_model=ChapterSchema)
 def create_chapter(
-    project_id: int, chapter: ChapterCreate, db: Session = Depends(get_db)
+    project_id: int,
+    chapter: ChapterCreate,
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
 ):
-    """Create a new chapter in a project"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+    """Create a new chapter in a project (only if project belongs to current user)"""
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -100,11 +134,21 @@ def create_chapter(
 
 
 @router.get("/{project_id}/chapters/{chapter_id}", response_model=ChapterSchema)
-def get_chapter(project_id: int, chapter_id: int, db: Session = Depends(get_db)):
-    """Get a chapter by ID"""
+def get_chapter(
+    project_id: int,
+    chapter_id: int,
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
+):
+    """Get a chapter by ID (only if project belongs to current user)"""
     chapter = (
         db.query(Chapter)
-        .filter(Chapter.id == chapter_id, Chapter.project_id == project_id)
+        .join(Project)
+        .filter(
+            Chapter.id == chapter_id,
+            Chapter.project_id == project_id,
+            Project.user_id == current_user.id
+        )
         .first()
     )
     if not chapter:
@@ -117,12 +161,18 @@ def update_chapter(
     project_id: int,
     chapter_id: int,
     chapter: ChapterUpdate,
-    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
 ):
-    """Update a chapter"""
+    """Update a chapter (only if project belongs to current user)"""
     db_chapter = (
         db.query(Chapter)
-        .filter(Chapter.id == chapter_id, Chapter.project_id == project_id)
+        .join(Project)
+        .filter(
+            Chapter.id == chapter_id,
+            Chapter.project_id == project_id,
+            Project.user_id == current_user.id
+        )
         .first()
     )
     if not db_chapter:
@@ -137,11 +187,21 @@ def update_chapter(
 
 
 @router.delete("/{project_id}/chapters/{chapter_id}")
-def delete_chapter(project_id: int, chapter_id: int, db: Session = Depends(get_db)):
-    """Delete a chapter"""
+def delete_chapter(
+    project_id: int,
+    chapter_id: int,
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a chapter (only if project belongs to current user)"""
     db_chapter = (
         db.query(Chapter)
-        .filter(Chapter.id == chapter_id, Chapter.project_id == project_id)
+        .join(Project)
+        .filter(
+            Chapter.id == chapter_id,
+            Chapter.project_id == project_id,
+            Project.user_id == current_user.id
+        )
         .first()
     )
     if not db_chapter:

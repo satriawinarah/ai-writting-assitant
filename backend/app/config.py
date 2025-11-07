@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
+    # Authentication
+    jwt_secret_key: str = "your-secret-key-change-this-in-production-min-32-chars"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 10080  # 7 days
+
     def get_api_key_for_model(self, model: str) -> str:
         """Get the appropriate API key for the given model"""
         if model.startswith("openai/"):
