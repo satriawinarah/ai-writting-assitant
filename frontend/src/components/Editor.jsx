@@ -42,6 +42,7 @@ export default function Editor({ chapter, onUpdate }) {
     { value: 'romantis', label: 'Romantis' },
     { value: 'realis', label: 'Realis Sosial' },
     { value: 'dialog', label: 'Dialog-Focused' },
+    { value: 'quote', label: 'Quote' },
   ];
 
   // Title styles definition
