@@ -1,9 +1,13 @@
 import logging
 import time
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from ..services.llm_service import llm_service
+from ..database import get_db
+from ..models.project import User, UserSettings
+from ..dependencies.auth import get_current_approved_user
 
 logger = logging.getLogger(__name__)
 
@@ -51,13 +55,21 @@ class TitleSuggestionResponse(BaseModel):
 
 
 @router.post("/continue", response_model=ContinuationResponse)
-async def generate_continuation(request: ContinuationRequest):
+async def generate_continuation(
+    request: ContinuationRequest,
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
+):
     """Generate text continuation based on context"""
     start_time = time.time()
     request_id = id(request)
 
     logger.info(f"[{request_id}] Received continuation request - context length: {len(request.context)}, max_tokens: {request.max_tokens}, temperature: {request.temperature}")
     logger.debug(f"[{request_id}] Context preview: {request.context[:100]}...")
+
+    # Get user's custom prompts if available
+    user_settings = db.query(UserSettings).filter(UserSettings.user_id == current_user.id).first()
+    custom_prompts = user_settings.custom_prompts if user_settings else None
 
     # Check if model is available
     logger.info(f"[{request_id}] Checking model availability for {request.model}...")
@@ -78,7 +90,8 @@ async def generate_continuation(request: ContinuationRequest):
             writing_style=request.writing_style,
             paragraph_count=request.paragraph_count,
             brief_idea=request.brief_idea,
-            model=request.model
+            model=request.model,
+            custom_prompts=custom_prompts
         )
 
         elapsed_time = time.time() - start_time
@@ -100,13 +113,21 @@ async def generate_continuation(request: ContinuationRequest):
 
 
 @router.post("/improve", response_model=ImprovementResponse)
-async def improve_text(request: ImprovementRequest):
+async def improve_text(
+    request: ImprovementRequest,
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
+):
     """Improve selected text based on instruction"""
     start_time = time.time()
     request_id = id(request)
 
     logger.info(f"[{request_id}] Received improvement request - text length: {len(request.text)}, instruction: {request.instruction[:50]}...")
     logger.debug(f"[{request_id}] Text preview: {request.text[:100]}...")
+
+    # Get user's custom prompts if available
+    user_settings = db.query(UserSettings).filter(UserSettings.user_id == current_user.id).first()
+    custom_prompts = user_settings.custom_prompts if user_settings else None
 
     # Check if model is available
     logger.info(f"[{request_id}] Checking model availability for {request.model}...")
@@ -125,7 +146,8 @@ async def improve_text(request: ImprovementRequest):
             instruction=request.instruction,
             temperature=request.temperature,
             writing_style=request.writing_style,
-            model=request.model
+            model=request.model,
+            custom_prompts=custom_prompts
         )
 
         elapsed_time = time.time() - start_time

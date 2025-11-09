@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..database import Base
@@ -20,6 +20,7 @@ class User(Base):
 
     # Relationships
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
+    settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
 class Project(Base):
@@ -54,3 +55,18 @@ class Chapter(Base):
 
     # Relationships
     project = relationship("Project", back_populates="chapters")
+
+
+class UserSettings(Base):
+    """User settings model for storing custom writing style prompts"""
+
+    __tablename__ = "user_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+    custom_prompts = Column(JSON, nullable=True, default={})  # Stores custom prompts for writing styles
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="settings")

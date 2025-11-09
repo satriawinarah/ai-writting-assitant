@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
+import Settings from './components/Settings';
 import ProjectModal from './components/ProjectModal';
 import ChapterModal from './components/ChapterModal';
 import Login from './components/Login';
@@ -20,6 +21,7 @@ export default function App() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showChapterModal, setShowChapterModal] = useState(false);
   const [saveTimeout, setSaveTimeout] = useState(null);
+  const [currentView, setCurrentView] = useState('editor'); // 'editor' or 'settings'
 
   // Check authentication on mount
   useEffect(() => {
@@ -196,10 +198,13 @@ export default function App() {
         projects={projects}
         activeProject={activeProject}
         activeChapter={activeChapter}
+        currentView={currentView}
         onSelectProject={loadProject}
         onSelectChapter={handleSelectChapter}
         onNewProject={() => setShowProjectModal(true)}
         onNewChapter={() => setShowChapterModal(true)}
+        onViewSettings={() => setCurrentView('settings')}
+        onViewEditor={() => setCurrentView('editor')}
         onDeleteProject={async (projectId) => {
           try {
             await projectsAPI.delete(projectId);
@@ -258,7 +263,9 @@ export default function App() {
           </button>
         </div>
 
-        {activeProject && activeChapter ? (
+        {currentView === 'settings' ? (
+          <Settings />
+        ) : activeProject && activeChapter ? (
           <Editor chapter={activeChapter} onUpdate={handleUpdateChapter} />
         ) : (
           <div className="empty-state">

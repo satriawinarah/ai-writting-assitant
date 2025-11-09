@@ -82,4 +82,11 @@ export const aiAPI = {
   status: () => api.get('/ai/status'),
 };
 
+// Settings
+export const settingsAPI = {
+  getDefaultPrompts: () => api.get('/settings/default-prompts').then(res => res.data),
+  getMySettings: () => api.get('/settings/me').then(res => res.data),
+  updateMySettings: (data) => api.put('/settings/me', data).then(res => res.data),
+};
+
 export default api;

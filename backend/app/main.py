@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from pathlib import Path
 
-from .api import projects_router, ai_router, auth_router
+from .api import projects_router, ai_router, auth_router, settings_router
 from .database import engine, Base
 from .config import get_settings
 
@@ -36,6 +36,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(ai_router)
+app.include_router(settings_router)
 
 
 # Health check endpoint

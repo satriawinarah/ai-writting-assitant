@@ -226,7 +226,7 @@ Tulis dengan memanfaatkan kutipan yang bermakna dan contextual. Selalu tulis dal
         # OpenRouter uses OpenAI-compatible API, so Groq client should work
         return Groq(api_key=api_key)
 
-    async def generate_continuation(self, context: str, max_tokens: int = 2000, temperature: float = 0.7, writing_style: str = "puitis", paragraph_count: int = 1, brief_idea: str = "", model: str = "openai/gpt-oss-120b") -> str:
+    async def generate_continuation(self, context: str, max_tokens: int = 2000, temperature: float = 0.7, writing_style: str = "puitis", paragraph_count: int = 1, brief_idea: str = "", model: str = "openai/gpt-oss-120b", custom_prompts: dict = None) -> str:
         """
         Generate text continuation based on context using LLM API.
 
@@ -245,8 +245,13 @@ Tulis dengan memanfaatkan kutipan yang bermakna dan contextual. Selalu tulis dal
         # Get client for the specified model
         client = self._get_client_for_model(model)
 
-        # Get style configuration, default to puitis if not found
-        style_config = self.WRITING_STYLES.get(writing_style, self.WRITING_STYLES["puitis"])
+        # Get style configuration
+        # First check custom prompts, then fall back to default
+        if custom_prompts and writing_style in custom_prompts:
+            style_description = custom_prompts[writing_style]
+        else:
+            style_config = self.WRITING_STYLES.get(writing_style, self.WRITING_STYLES["puitis"])
+            style_description = style_config["description"]
 
         # Build the task instruction based on whether brief_idea is provided
         if brief_idea and brief_idea.strip():
@@ -261,7 +266,7 @@ Tulis {paragraph_count} paragraf yang mengembangkan ide tersebut dengan natural 
         messages = [
             {
                 "role": "system",
-                "content": style_config["description"]
+                "content": style_description
             },
             {
                 "role": "user",
@@ -285,7 +290,7 @@ Kelanjutan:"""
         generated_text = response.choices[0].message.content.strip()
         return generated_text
 
-    async def improve_text(self, text: str, instruction: str = "Tolong poles teks berikut agar lebih hidup, jelas, dan memiliki gaya bahasa yang menarik serta alami untuk dibaca, tanpa mengubah inti cerita atau suasana emosinya.", temperature: float = 0.7, writing_style: str = "puitis", model: str = "openai/gpt-oss-120b") -> str:
+    async def improve_text(self, text: str, instruction: str = "Tolong poles teks berikut agar lebih hidup, jelas, dan memiliki gaya bahasa yang menarik serta alami untuk dibaca, tanpa mengubah inti cerita atau suasana emosinya.", temperature: float = 0.7, writing_style: str = "puitis", model: str = "openai/gpt-oss-120b", custom_prompts: dict = None) -> str:
         """
         Improve text based on instruction using LLM API.
 
@@ -302,13 +307,18 @@ Kelanjutan:"""
         # Get client for the specified model
         client = self._get_client_for_model(model)
 
-        # Get style configuration, default to puitis if not found
-        style_config = self.WRITING_STYLES.get(writing_style, self.WRITING_STYLES["puitis"])
+        # Get style configuration
+        # First check custom prompts, then fall back to default
+        if custom_prompts and writing_style in custom_prompts:
+            style_description = custom_prompts[writing_style]
+        else:
+            style_config = self.WRITING_STYLES.get(writing_style, self.WRITING_STYLES["puitis"])
+            style_description = style_config["description"]
 
         messages = [
             {
                 "role": "system",
-                "content": style_config["description"]
+                "content": style_description
             },
             {
                 "role": "user",

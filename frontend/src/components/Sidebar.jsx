@@ -4,10 +4,13 @@ export default function Sidebar({
   projects,
   activeProject,
   activeChapter,
+  currentView,
   onSelectProject,
   onSelectChapter,
   onNewProject,
   onNewChapter,
+  onViewSettings,
+  onViewEditor,
   onDeleteProject,
   onDeleteChapter,
   onRenameProject,
@@ -19,6 +22,23 @@ export default function Sidebar({
         <h1>DiksiAI</h1>
         <button className="new-project-btn" onClick={onNewProject}>
           + New Project
+        </button>
+      </div>
+
+      <div className="sidebar-navigation">
+        <button
+          className={`sidebar-nav-btn ${currentView === 'editor' ? 'active' : ''}`}
+          onClick={onViewEditor}
+        >
+          <span className="nav-icon">📝</span>
+          <span>Editor</span>
+        </button>
+        <button
+          className={`sidebar-nav-btn ${currentView === 'settings' ? 'active' : ''}`}
+          onClick={onViewSettings}
+        >
+          <span className="nav-icon">⚙️</span>
+          <span>Settings</span>
         </button>
       </div>
 
