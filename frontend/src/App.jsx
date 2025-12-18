@@ -132,8 +132,11 @@ export default function App() {
         ...data,
         order: activeProject.chapters.length,
       });
-      setActiveChapter(response.data);
-      await loadProject(activeProject);
+      const newChapter = response.data;
+      // Reload project to update sidebar, then set the new chapter as active
+      const projectResponse = await projectsAPI.get(activeProject.id);
+      setActiveProject(projectResponse.data);
+      setActiveChapter(newChapter);
       setShowChapterModal(false);
     } catch (error) {
       console.error('Error creating chapter:', error);
