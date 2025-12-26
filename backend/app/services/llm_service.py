@@ -1,5 +1,45 @@
 from groq import Groq
 from app.config import get_settings
+import re
+
+
+def sanitize_user_input(text: str, max_length: int = 5000) -> str:
+    """
+    Sanitize user input to prevent prompt injection attacks.
+
+    - Truncates to max_length
+    - Removes potential prompt injection patterns
+    - Strips dangerous control sequences
+    """
+    if not text:
+        return ""
+
+    # Truncate to max length
+    text = text[:max_length]
+
+    # Remove common prompt injection patterns (case-insensitive)
+    injection_patterns = [
+        r'(?i)ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?)',
+        r'(?i)disregard\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?)',
+        r'(?i)forget\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?)',
+        r'(?i)you\s+are\s+now\s+',
+        r'(?i)act\s+as\s+if\s+',
+        r'(?i)pretend\s+(you\s+are|to\s+be)\s+',
+        r'(?i)new\s+instructions?:',
+        r'(?i)system\s*:\s*',
+        r'(?i)assistant\s*:\s*',
+        r'(?i)\[INST\]',
+        r'(?i)\[/INST\]',
+        r'(?i)<\|im_start\|>',
+        r'(?i)<\|im_end\|>',
+        r'(?i)<<SYS>>',
+        r'(?i)<</SYS>>',
+    ]
+
+    for pattern in injection_patterns:
+        text = re.sub(pattern, '[FILTERED]', text)
+
+    return text.strip()
 
 
 class LLMService:
@@ -255,9 +295,11 @@ Tulis dengan memanfaatkan kutipan yang bermakna dan contextual. Selalu tulis dal
 
         # Build the task instruction based on whether brief_idea is provided
         if brief_idea and brief_idea.strip():
+            # Sanitize user input to prevent prompt injection
+            sanitized_brief_idea = sanitize_user_input(brief_idea.strip(), max_length=1000)
             task_instruction = f"""Tugas: Lanjutkan cerita di atas dengan gaya sastrawi yang sama. Pertahankan nada, ritme, dan kedalaman emosi.
 
-Arah cerita: {brief_idea.strip()}
+Arah cerita: {sanitized_brief_idea}
 
 Tulis {paragraph_count} paragraf yang mengembangkan ide tersebut dengan natural dan mengalir. Pastikan kalimat terakhir selesai dengan sempurna."""
         else:
@@ -315,6 +357,9 @@ Kelanjutan:"""
             style_config = self.WRITING_STYLES.get(writing_style, self.WRITING_STYLES["puitis"])
             style_description = style_config["description"]
 
+        # Sanitize user input to prevent prompt injection
+        sanitized_instruction = sanitize_user_input(instruction, max_length=500)
+
         messages = [
             {
                 "role": "system",
@@ -325,7 +370,7 @@ Kelanjutan:"""
                 "content": f"""Teks Asli:
 {text}
 
-Tugas: {instruction}
+Tugas: {sanitized_instruction}
 
 ATURAN PENTING: Perbaiki teks dengan mengikuti gaya sastrawi yang dipilih. Pertahankan inti cerita dan suasana emosi, tetapi tingkatkan kualitas bahasa sesuai gaya penulisan. Tulis HANYA dalam BAHASA INDONESIA.
 

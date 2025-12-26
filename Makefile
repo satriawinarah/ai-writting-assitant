@@ -227,7 +227,6 @@ setup-nginx:
 	echo "    }" | sudo tee -a /etc/nginx/sites-available/$(SERVICE_NAME) > /dev/null; \
 	echo "}" | sudo tee -a /etc/nginx/sites-available/$(SERVICE_NAME) > /dev/null
 	sudo ln -sf /etc/nginx/sites-available/$(SERVICE_NAME) /etc/nginx/sites-enabled/
-	sudo rm -f /etc/nginx/sites-enabled/default
 	sudo nginx -t
 	sudo systemctl restart nginx
 	sudo systemctl enable nginx

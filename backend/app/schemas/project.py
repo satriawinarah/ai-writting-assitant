@@ -1,12 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 
+# Constants for validation
+MAX_TITLE_LENGTH = 255
+MAX_DESCRIPTION_LENGTH = 2000
+MAX_CONTENT_LENGTH = 500000  # ~500KB for chapter content
+
 
 class ChapterBase(BaseModel):
-    title: str
-    content: Optional[str] = ""
-    order: int = 0
+    title: str = Field(..., min_length=1, max_length=MAX_TITLE_LENGTH)
+    content: Optional[str] = Field(default="", max_length=MAX_CONTENT_LENGTH)
+    order: int = Field(default=0, ge=0, le=10000)
 
 
 class ChapterCreate(ChapterBase):
@@ -14,9 +19,9 @@ class ChapterCreate(ChapterBase):
 
 
 class ChapterUpdate(BaseModel):
-    title: Optional[str] = None
-    content: Optional[str] = None
-    order: Optional[int] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=MAX_TITLE_LENGTH)
+    content: Optional[str] = Field(default=None, max_length=MAX_CONTENT_LENGTH)
+    order: Optional[int] = Field(default=None, ge=0, le=10000)
 
 
 class Chapter(ChapterBase):
@@ -30,8 +35,8 @@ class Chapter(ChapterBase):
 
 
 class ProjectBase(BaseModel):
-    title: str
-    description: Optional[str] = None
+    title: str = Field(..., min_length=1, max_length=MAX_TITLE_LENGTH)
+    description: Optional[str] = Field(default=None, max_length=MAX_DESCRIPTION_LENGTH)
 
 
 class ProjectCreate(ProjectBase):
@@ -39,8 +44,8 @@ class ProjectCreate(ProjectBase):
 
 
 class ProjectUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=MAX_TITLE_LENGTH)
+    description: Optional[str] = Field(default=None, max_length=MAX_DESCRIPTION_LENGTH)
 
 
 class Project(ProjectBase):
