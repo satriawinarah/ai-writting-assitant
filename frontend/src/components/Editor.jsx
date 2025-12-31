@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { aiAPI } from '../services/api';
 import Footer from './Footer';
+import ReviewTooltip from './ReviewTooltip';
+import { LiveReviewExtension, setLiveReviewIssues, clearLiveReviewIssues } from '../extensions/LiveReviewExtension';
 
 export default function Editor({ chapter, onUpdate }) {
   const [suggestion, setSuggestion] = useState(null);
@@ -25,6 +27,15 @@ export default function Editor({ chapter, onUpdate }) {
   const [titleError, setTitleError] = useState(null);
   const [selectedModel, setSelectedModel] = useState('openai/gpt-oss-120b'); // Default model
 
+  // Live Review state
+  const [liveReviewEnabled, setLiveReviewEnabled] = useState(false);
+  const [reviewIssues, setReviewIssues] = useState([]);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
+  const [activeTooltip, setActiveTooltip] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [reviewStale, setReviewStale] = useState(false);
+
   // Available models definition
   const availableModels = [
     { value: 'openai/gpt-oss-120b', label: 'OpenAI GPT OSS 120B' },
@@ -44,6 +55,19 @@ export default function Editor({ chapter, onUpdate }) {
     { value: 'dialog', label: 'Dialog-Focused' },
     { value: 'quote', label: 'Quote' },
   ];
+
+  // Live Review handlers
+  const handleIssueClick = useCallback((issue, event, issueIndex) => {
+    setActiveTooltip({ issue, index: issueIndex });
+    setTooltipPosition({
+      x: event.clientX,
+      y: event.clientY + 10,
+    });
+  }, []);
+
+  const closeTooltip = useCallback(() => {
+    setActiveTooltip(null);
+  }, []);
 
   // Title styles definition
   const titleStyles = [
@@ -95,6 +119,10 @@ export default function Editor({ chapter, onUpdate }) {
       Placeholder.configure({
         placeholder: 'Start writing your story...',
       }),
+      LiveReviewExtension.configure({
+        issues: [],
+        onIssueClick: handleIssueClick,
+      }),
     ],
     content: chapter?.content || '',
     onUpdate: ({ editor }) => {
@@ -103,6 +131,13 @@ export default function Editor({ chapter, onUpdate }) {
       // Save content
       if (onUpdate) {
         onUpdate(content);
+      }
+
+      // Mark review as stale if there are issues and content changed
+      if (reviewIssues.length > 0) {
+        setReviewStale(true);
+        // Clear decorations since positions are now invalid
+        clearLiveReviewIssues(editor);
       }
     },
     onSelectionUpdate: ({ editor }) => {
@@ -249,6 +284,140 @@ export default function Editor({ chapter, onUpdate }) {
     setTitleError(null);
   };
 
+  // Live Review functions
+  const runLiveReview = async () => {
+    if (!editor) return;
+
+    const text = editor.getText();
+    if (!text || text.trim().length < 50) {
+      setReviewError('Tulis minimal 50 karakter sebelum menjalankan review.');
+      return;
+    }
+
+    setReviewLoading(true);
+    setReviewError(null);
+    setReviewStale(false);
+    setActiveTooltip(null);
+
+    try {
+      const response = await aiAPI.liveReview(text, {
+        model: selectedModel
+      });
+
+      const issues = response.data.issues || [];
+      setReviewIssues(issues);
+
+      // Update decorations in the editor
+      setLiveReviewIssues(editor, issues);
+
+      if (issues.length === 0) {
+        setReviewError('Tidak ada masalah ditemukan. Teks Anda sudah baik!');
+      }
+    } catch (err) {
+      console.error('Error running live review:', err);
+      setReviewError(err.response?.data?.detail || 'Gagal menjalankan review');
+      setReviewIssues([]);
+      clearLiveReviewIssues(editor);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const applyIssueFix = (issue) => {
+    if (!editor || !issue) return;
+
+    // Get the plain text to find position
+    const text = editor.getText();
+    const startOffset = text.indexOf(issue.original_text);
+
+    if (startOffset === -1) {
+      setReviewError('Tidak dapat menemukan teks yang akan diperbaiki.');
+      return;
+    }
+
+    // Convert text offset to ProseMirror position
+    let currentOffset = 0;
+    let from = null;
+    let to = null;
+
+    editor.state.doc.descendants((node, pos) => {
+      if (from !== null && to !== null) return false;
+
+      if (node.isText) {
+        const textLength = node.text.length;
+        if (from === null && currentOffset + textLength > startOffset) {
+          from = pos + (startOffset - currentOffset);
+        }
+        if (from !== null && to === null && currentOffset + textLength >= startOffset + issue.original_text.length) {
+          to = pos + (startOffset + issue.original_text.length - currentOffset);
+        }
+        currentOffset += textLength;
+      }
+      return true;
+    });
+
+    if (from !== null && to !== null) {
+      // Replace the text
+      editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, issue.suggestion).run();
+
+      // Remove this issue from the list
+      const newIssues = reviewIssues.filter((_, idx) => reviewIssues[idx] !== issue);
+      setReviewIssues(newIssues);
+
+      // Clear all decorations since positions changed
+      clearLiveReviewIssues(editor);
+
+      // Mark as stale if there are remaining issues
+      if (newIssues.length > 0) {
+        setReviewStale(true);
+      }
+    }
+
+    // Close tooltip
+    setActiveTooltip(null);
+  };
+
+  const dismissIssue = (issue) => {
+    // Remove this issue from the list
+    const issueIndex = reviewIssues.findIndex((i) => i === issue);
+    if (issueIndex === -1) return;
+
+    const newIssues = reviewIssues.filter((_, idx) => idx !== issueIndex);
+    setReviewIssues(newIssues);
+
+    // Update decorations
+    setLiveReviewIssues(editor, newIssues);
+
+    // Close tooltip
+    setActiveTooltip(null);
+  };
+
+  const toggleLiveReview = () => {
+    const newEnabled = !liveReviewEnabled;
+    setLiveReviewEnabled(newEnabled);
+
+    if (!newEnabled) {
+      // Clear everything when disabling
+      setReviewIssues([]);
+      setReviewError(null);
+      setReviewStale(false);
+      setActiveTooltip(null);
+      if (editor) {
+        clearLiveReviewIssues(editor);
+      }
+    }
+  };
+
+  const clearReview = () => {
+    setReviewIssues([]);
+    setReviewError(null);
+    setReviewStale(false);
+    setActiveTooltip(null);
+    if (editor) {
+      clearLiveReviewIssues(editor);
+    }
+  };
+
   return (
     <div className="editor-container">
       <div className="editor-wrapper">
@@ -257,6 +426,58 @@ export default function Editor({ chapter, onUpdate }) {
 
       <div className="suggestion-sidebar">
         <h3>AI Suggestions</h3>
+
+        {/* Live Review Panel */}
+        <div className="live-review-panel">
+          <div className="live-review-header">
+            <h4>Live Review</h4>
+            <button
+              className={`live-review-toggle ${liveReviewEnabled ? 'active' : ''}`}
+              onClick={toggleLiveReview}
+            >
+              {liveReviewEnabled ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
+          {liveReviewEnabled && (
+            <div className="live-review-content">
+              <p className="live-review-description">
+                Analisis teks untuk menemukan area yang perlu diperbaiki.
+                Masalah akan di-highlight langsung di editor.
+              </p>
+
+              <button
+                className="review-btn"
+                onClick={runLiveReview}
+                disabled={reviewLoading}
+              >
+                {reviewLoading ? 'Menganalisis...' : 'Jalankan Review'}
+              </button>
+
+              {reviewIssues.length > 0 && (
+                <div className="review-status">
+                  <span className="issue-count">
+                    {reviewIssues.length} masalah ditemukan
+                  </span>
+                  {reviewStale && (
+                    <span className="stale-warning">
+                      (hasil sudah tidak valid, jalankan ulang review)
+                    </span>
+                  )}
+                  <button className="clear-review-btn" onClick={clearReview}>
+                    Hapus
+                  </button>
+                </div>
+              )}
+
+              {reviewError && (
+                <div className={reviewIssues.length === 0 && !reviewError.includes('Gagal') ? 'success' : 'error'}>
+                  {reviewError}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {showImprovementPanel && (
           <div className="improvement-panel">
@@ -493,6 +714,17 @@ export default function Editor({ chapter, onUpdate }) {
         onModelChange={setSelectedModel}
         availableModels={availableModels}
       />
+
+      {/* Live Review Tooltip */}
+      {activeTooltip && (
+        <ReviewTooltip
+          issue={activeTooltip.issue}
+          position={tooltipPosition}
+          onApply={applyIssueFix}
+          onDismiss={dismissIssue}
+          onClose={closeTooltip}
+        />
+      )}
     </div>
   );
 }

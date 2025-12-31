@@ -54,6 +54,27 @@ class TitleSuggestionResponse(BaseModel):
     model: str
 
 
+class ReviewIssue(BaseModel):
+    original_text: str
+    start_offset: int
+    end_offset: int
+    severity: str  # "critical" or "warning"
+    issue_type: str  # "grammar", "clarity", "style", "redundancy", "word_choice"
+    suggestion: str
+    explanation: str
+
+
+class LiveReviewRequest(BaseModel):
+    content: str
+    model: str = "openai/gpt-oss-120b"
+    temperature: float = 0.7
+
+
+class LiveReviewResponse(BaseModel):
+    issues: list[ReviewIssue]
+    model: str
+
+
 @router.post("/continue", response_model=ContinuationResponse)
 async def generate_continuation(
     request: ContinuationRequest,
@@ -211,6 +232,54 @@ async def suggest_title(request: TitleSuggestionRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error generating title suggestions: {str(e)}"
+        )
+
+
+@router.post("/live-review", response_model=LiveReviewResponse)
+async def live_review(
+    request: LiveReviewRequest,
+    current_user: User = Depends(get_current_approved_user),
+    db: Session = Depends(get_db)
+):
+    """Analyze text and return issues with suggestions for improvement"""
+    start_time = time.time()
+    request_id = id(request)
+
+    logger.info(f"[{request_id}] Received live review request - content length: {len(request.content)}")
+    logger.debug(f"[{request_id}] Content preview: {request.content[:100]}...")
+
+    # Check if model is available
+    logger.info(f"[{request_id}] Checking model availability for {request.model}...")
+    if not llm_service.check_model_available(request.model):
+        logger.error(f"[{request_id}] Model {request.model} not available")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Model {request.model} is not available. Please check API key configuration."
+        )
+    logger.info(f"[{request_id}] Model {request.model} is available")
+
+    try:
+        logger.info(f"[{request_id}] Starting live review with llm_service using {request.model}...")
+        issues = await llm_service.live_review(
+            content=request.content,
+            temperature=request.temperature,
+            model=request.model
+        )
+
+        elapsed_time = time.time() - start_time
+        logger.info(f"[{request_id}] Live review completed in {elapsed_time:.2f}s - found {len(issues)} issues")
+
+        return LiveReviewResponse(
+            issues=issues,
+            model=request.model
+        )
+
+    except Exception as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"[{request_id}] Error during live review after {elapsed_time:.2f}s: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error during live review: {str(e)}"
         )
 
 

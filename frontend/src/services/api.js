@@ -79,6 +79,11 @@ export const aiAPI = {
     temperature: options.temperature || 0.7,
     model: options.model || 'openai/gpt-oss-120b',
   }),
+  liveReview: (content, options = {}) => api.post('/ai/live-review', {
+    content,
+    temperature: options.temperature || 0.7,
+    model: options.model || 'openai/gpt-oss-120b',
+  }),
   status: () => api.get('/ai/status'),
 };
 

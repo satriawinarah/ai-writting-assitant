@@ -1,6 +1,7 @@
 from groq import Groq
 from app.config import get_settings
 import re
+import json
 
 
 def sanitize_user_input(text: str, max_length: int = 5000) -> str:
@@ -458,6 +459,122 @@ Judul:"""
 
         # Return at least 5 titles, or all if we got less
         return titles[:5] if len(titles) >= 5 else titles
+
+    async def live_review(self, content: str, temperature: float = 0.7, model: str = "openai/gpt-oss-120b") -> list[dict]:
+        """
+        Analyze text and return issues with suggestions for improvement.
+
+        Args:
+            content: The full text content to analyze
+            temperature: Sampling temperature (0.0-1.0)
+            model: Model to use for analysis
+
+        Returns:
+            List of issues with positions, severity, suggestions, and explanations
+        """
+        # Get client for the specified model
+        client = self._get_client_for_model(model)
+
+        system_prompt = """Kamu adalah editor profesional yang ahli dalam mengoreksi dan memperbaiki tulisan dalam Bahasa Indonesia.
+
+Analisis teks yang diberikan dan identifikasi bagian-bagian yang perlu diperbaiki. Untuk setiap masalah yang ditemukan, berikan informasi berikut:
+
+1. original_text: Teks asli yang bermasalah (harus EXACT substring dari input, copy paste persis)
+2. severity: Tingkat keparahan - "critical" untuk kesalahan tata bahasa, ejaan, atau makna tidak jelas; "warning" untuk masalah gaya atau yang bisa diperbaiki tapi tidak salah
+3. issue_type: Jenis masalah - pilih salah satu: "grammar" (tata bahasa/ejaan), "clarity" (kejelasan), "style" (gaya bahasa), "redundancy" (pengulangan), "word_choice" (pilihan kata)
+4. suggestion: Teks yang sudah diperbaiki (pengganti untuk original_text)
+5. explanation: Penjelasan singkat mengapa perlu diperbaiki (1 kalimat)
+
+ATURAN PENTING:
+- original_text HARUS merupakan substring yang persis ada dalam teks input
+- Jangan ubah atau modifikasi original_text, copy persis dari input
+- Fokus pada masalah yang benar-benar penting, jangan terlalu banyak
+- Maksimal 10 masalah per review
+- Jika tidak ada masalah, kembalikan array kosong []
+
+Kembalikan HANYA JSON array tanpa penjelasan tambahan. Format:
+[
+  {
+    "original_text": "teks asli yang bermasalah",
+    "severity": "critical",
+    "issue_type": "grammar",
+    "suggestion": "teks yang diperbaiki",
+    "explanation": "penjelasan singkat"
+  }
+]"""
+
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": f"""Analisis teks berikut dan identifikasi bagian yang perlu diperbaiki:
+
+{content}
+
+Kembalikan hasil analisis dalam format JSON array:"""
+            }
+        ]
+
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=4000
+        )
+
+        result_text = response.choices[0].message.content.strip()
+
+        # Parse JSON response
+        try:
+            # Try to extract JSON from the response (in case there's extra text)
+            json_match = re.search(r'\[[\s\S]*\]', result_text)
+            if json_match:
+                issues_raw = json.loads(json_match.group())
+            else:
+                issues_raw = json.loads(result_text)
+        except json.JSONDecodeError:
+            # If parsing fails, return empty list
+            return []
+
+        # Calculate positions for each issue
+        issues = []
+        used_positions = set()  # Track used positions to handle duplicates
+
+        for issue in issues_raw:
+            original_text = issue.get("original_text", "")
+            if not original_text:
+                continue
+
+            # Find the position of the original text in content
+            # Start searching from position 0, but skip positions we've already used
+            search_start = 0
+            while True:
+                start_offset = content.find(original_text, search_start)
+                if start_offset == -1:
+                    break
+                end_offset = start_offset + len(original_text)
+
+                # Check if this position range overlaps with any used position
+                position_key = (start_offset, end_offset)
+                if position_key not in used_positions:
+                    used_positions.add(position_key)
+                    issues.append({
+                        "original_text": original_text,
+                        "start_offset": start_offset,
+                        "end_offset": end_offset,
+                        "severity": issue.get("severity", "warning"),
+                        "issue_type": issue.get("issue_type", "style"),
+                        "suggestion": issue.get("suggestion", original_text),
+                        "explanation": issue.get("explanation", "")
+                    })
+                    break
+
+                search_start = start_offset + 1
+
+        return issues
 
     def check_model_available(self, model: str = "openai/gpt-oss-120b") -> bool:
         """Check if the specified model is available"""
