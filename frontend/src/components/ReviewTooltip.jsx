@@ -6,6 +6,9 @@ const ISSUE_TYPE_LABELS = {
   style: 'Gaya Bahasa',
   redundancy: 'Pengulangan',
   word_choice: 'Pilihan Kata',
+  simplicity: 'Penyederhanaan',
+  flow: 'Alur Kalimat',
+  conciseness: 'Keringkasan',
 };
 
 export default function ReviewTooltip({

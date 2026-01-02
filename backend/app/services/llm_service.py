@@ -96,9 +96,6 @@ Ciri khas gaya penulisan:
 - Kalimat yang berirama dan mengalir seperti puisi prosa
 - Fokus pada detail kecil yang membawa makna mendalam
 
-Contoh gaya yang diinginkan:
-"Obor yang digenggam Darman bergetar, apinya bergoyang kencang seolah ragu. Bensin membasahi tiang-tiang rumah itu, serupa peluh pada tubuh yang akan dihukum mati."
-
 Selalu tulis dalam Bahasa Indonesia. Jangan gunakan bahasa Inggris."""
         },
         "naratif": {
@@ -480,17 +477,37 @@ Judul:"""
 Analisis teks yang diberikan dan identifikasi bagian-bagian yang perlu diperbaiki. Untuk setiap masalah yang ditemukan, berikan informasi berikut:
 
 1. original_text: Teks asli yang bermasalah (harus EXACT substring dari input, copy paste persis)
-2. severity: Tingkat keparahan - "critical" untuk kesalahan tata bahasa, ejaan, atau makna tidak jelas; "warning" untuk masalah gaya atau yang bisa diperbaiki tapi tidak salah
-3. issue_type: Jenis masalah - pilih salah satu: "grammar" (tata bahasa/ejaan), "clarity" (kejelasan), "style" (gaya bahasa), "redundancy" (pengulangan), "word_choice" (pilihan kata)
+2. severity: Tingkat keparahan:
+   - "critical": kesalahan tata bahasa, ejaan, makna tidak jelas, atau struktur kalimat yang salah
+   - "warning": masalah gaya, saran perbaikan, atau hal yang bisa ditingkatkan
+3. issue_type: Jenis masalah - pilih salah satu:
+   - "grammar": kesalahan tata bahasa, ejaan, tanda baca
+   - "clarity": kalimat membingungkan, makna tidak jelas, ambigu
+   - "style": gaya bahasa kurang tepat, nada tidak konsisten
+   - "redundancy": pengulangan kata/frasa yang tidak perlu, kalimat bertele-tele
+   - "word_choice": pilihan kata kurang tepat, bisa diganti kata yang lebih baik
+   - "simplicity": kalimat terlalu panjang/rumit, bisa disederhanakan
+   - "flow": alur kalimat tidak mengalir dengan baik, transisi kurang halus
+   - "conciseness": bisa dipersingkat tanpa mengurangi makna
 4. suggestion: Teks yang sudah diperbaiki (pengganti untuk original_text)
-5. explanation: Penjelasan singkat mengapa perlu diperbaiki (1 kalimat)
+5. explanation: Penjelasan singkat dalam Bahasa Indonesia mengapa perlu diperbaiki (1-2 kalimat)
+
+HAL YANG PERLU DIPERHATIKAN:
+- Kalimat yang terlalu panjang dan rumit - sarankan untuk dipecah atau disederhanakan
+- Kata-kata yang berlebihan atau tidak perlu - sarankan untuk dihapus
+- Pengulangan ide atau kata yang sama - sarankan alternatif atau penghapusan
+- Struktur kalimat yang bisa lebih efektif - sarankan perbaikan
+- Kata serapan yang ada padanan Bahasa Indonesianya - sarankan padanan yang tepat
+- Kalimat pasif yang berlebihan - sarankan bentuk aktif jika lebih baik
+- Penggunaan kata penghubung yang salah atau berlebihan
 
 ATURAN PENTING:
 - original_text HARUS merupakan substring yang persis ada dalam teks input
 - Jangan ubah atau modifikasi original_text, copy persis dari input
-- Fokus pada masalah yang benar-benar penting, jangan terlalu banyak
+- Fokus pada masalah yang benar-benar penting dan berdampak
 - Maksimal 10 masalah per review
 - Jika tidak ada masalah, kembalikan array kosong []
+- Prioritaskan masalah "critical" terlebih dahulu
 
 Kembalikan HANYA JSON array tanpa penjelasan tambahan. Format:
 [
@@ -499,7 +516,7 @@ Kembalikan HANYA JSON array tanpa penjelasan tambahan. Format:
     "severity": "critical",
     "issue_type": "grammar",
     "suggestion": "teks yang diperbaiki",
-    "explanation": "penjelasan singkat"
+    "explanation": "penjelasan singkat dalam Bahasa Indonesia"
   }
 ]"""
 
