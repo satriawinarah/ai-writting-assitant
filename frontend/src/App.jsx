@@ -46,8 +46,10 @@ export default function App() {
       const response = await authAPI.getCurrentUser();
       setUser(response.data);
     } catch (error) {
+      console.error('Auth check failed:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -195,6 +197,32 @@ export default function App() {
   }
 
   // Show main app if authenticated
+  const renderMainContent = () => {
+    if (currentView === 'settings') {
+      return <Settings />;
+    }
+
+    if (activeProject && activeChapter) {
+      return <Editor chapter={activeChapter} onUpdate={handleUpdateChapter} />;
+    }
+
+    if (activeProject) {
+      return (
+        <div className="empty-state">
+          <h2>{activeProject.title}</h2>
+          <p>Select or create a chapter to start writing</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="empty-state">
+        <h2>Welcome to DiksiAI</h2>
+        <p>Create a new project to start writing</p>
+      </div>
+    );
+  };
+
   return (
     <div className="app">
       <Sidebar
@@ -260,22 +288,13 @@ export default function App() {
 
       <div className="main-content">
         <div className="user-bar">
-          <span>Welcome, {user.full_name}</span>
+          <span>Welcome, {user?.full_name || 'User'}</span>
           <button onClick={handleLogout} className="logout-button">
             Logout
           </button>
         </div>
 
-        {currentView === 'settings' ? (
-          <Settings />
-        ) : activeProject && activeChapter ? (
-          <Editor chapter={activeChapter} onUpdate={handleUpdateChapter} />
-        ) : (
-          <div className="empty-state">
-            <h2>Welcome to DiksiAI</h2>
-            <p>Create a new project to start writing</p>
-          </div>
-        )}
+        {renderMainContent()}
       </div>
 
       <ProjectModal
