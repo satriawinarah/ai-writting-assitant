@@ -17,6 +17,10 @@ from ..dependencies.auth import get_current_approved_user
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
+# Error message constants
+PROJECT_NOT_FOUND = "Project not found"
+CHAPTER_NOT_FOUND = "Chapter not found"
+
 
 @router.get("", response_model=List[ProjectList])
 def list_projects(
@@ -64,7 +68,7 @@ def get_project(
         Project.user_id == current_user.id
     ).first()
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
     return project
 
 
@@ -81,7 +85,7 @@ def update_project(
         Project.user_id == current_user.id
     ).first()
     if not db_project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
 
     for key, value in project.model_dump(exclude_unset=True).items():
         setattr(db_project, key, value)
@@ -103,7 +107,7 @@ def delete_project(
         Project.user_id == current_user.id
     ).first()
     if not db_project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
 
     db.delete(db_project)
     db.commit()
@@ -124,7 +128,7 @@ def create_chapter(
         Project.user_id == current_user.id
     ).first()
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
 
     db_chapter = Chapter(project_id=project_id, **chapter.model_dump())
     db.add(db_chapter)
@@ -152,7 +156,7 @@ def get_chapter(
         .first()
     )
     if not chapter:
-        raise HTTPException(status_code=404, detail="Chapter not found")
+        raise HTTPException(status_code=404, detail=CHAPTER_NOT_FOUND)
     return chapter
 
 
@@ -176,7 +180,7 @@ def update_chapter(
         .first()
     )
     if not db_chapter:
-        raise HTTPException(status_code=404, detail="Chapter not found")
+        raise HTTPException(status_code=404, detail=CHAPTER_NOT_FOUND)
 
     for key, value in chapter.model_dump(exclude_unset=True).items():
         setattr(db_chapter, key, value)
@@ -205,7 +209,7 @@ def delete_chapter(
         .first()
     )
     if not db_chapter:
-        raise HTTPException(status_code=404, detail="Chapter not found")
+        raise HTTPException(status_code=404, detail=CHAPTER_NOT_FOUND)
 
     db.delete(db_chapter)
     db.commit()

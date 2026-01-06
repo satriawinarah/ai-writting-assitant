@@ -11,7 +11,7 @@ from ..schemas.user import TokenData
 security = HTTPBearer()
 
 
-async def get_current_user(
+def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
@@ -41,7 +41,7 @@ async def get_current_user(
     return user
 
 
-async def get_current_approved_user(
+def get_current_approved_user(
     current_user: User = Depends(get_current_user)
 ) -> User:
     """
