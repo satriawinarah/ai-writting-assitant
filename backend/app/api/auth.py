@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
@@ -8,13 +8,15 @@ from ..schemas.user import UserCreate, UserResponse, UserLogin, Token
 from ..utils.auth import get_password_hash, verify_password, create_access_token
 from ..dependencies.auth import get_current_user, get_current_approved_user
 from ..config import get_settings
+from ..utils.rate_limiter import limiter, RATE_LIMIT_LOGIN, RATE_LIMIT_REGISTER, RATE_LIMIT_DEFAULT
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 settings = get_settings()
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit(RATE_LIMIT_REGISTER)
+async def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user (requires admin approval)
     """
@@ -52,7 +54,8 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-async def login(login_data: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit(RATE_LIMIT_LOGIN)
+async def login(request: Request, login_data: UserLogin, db: Session = Depends(get_db)):
     """
     Login with email/username and password
     """
@@ -98,7 +101,9 @@ async def login(login_data: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserResponse)
+@limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_current_user_info(
+    request: Request,
     current_user: User = Depends(get_current_approved_user)
 ):
     """
@@ -108,7 +113,8 @@ async def get_current_user_info(
 
 
 @router.post("/logout")
-async def logout():
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def logout(request: Request):
     """
     Logout endpoint (client should remove token)
     """

@@ -1,13 +1,16 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 import os
 from pathlib import Path
 
 from .api import projects_router, ai_router, auth_router, settings_router
 from .database import engine, Base
 from .config import get_settings
+from .utils.rate_limiter import limiter
 
 settings = get_settings()
 
@@ -22,6 +25,10 @@ app = FastAPI(
     version="0.1.0",
     debug=settings.debug,
 )
+
+# Add rate limiter state and exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware for development
 app.add_middleware(

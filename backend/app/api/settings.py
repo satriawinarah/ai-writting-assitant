@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import Dict
 
@@ -7,12 +7,14 @@ from ..models.project import User, UserSettings
 from ..schemas.settings import UserSettingsResponse, UserSettingsUpdate
 from ..dependencies.auth import get_current_approved_user
 from ..services.llm_service import LLMService
+from ..utils.rate_limiter import limiter, RATE_LIMIT_DEFAULT
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
 @router.get("/default-prompts")
-async def get_default_prompts():
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def get_default_prompts(request: Request):
     """Get all default writing style prompts"""
     llm_service = LLMService()
     return {
@@ -22,7 +24,9 @@ async def get_default_prompts():
 
 
 @router.get("/me", response_model=UserSettingsResponse)
+@limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_my_settings(
+    request: Request,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
@@ -40,7 +44,9 @@ async def get_my_settings(
 
 
 @router.put("/me", response_model=UserSettingsResponse)
+@limiter.limit(RATE_LIMIT_DEFAULT)
 async def update_my_settings(
+    request: Request,
     settings_update: UserSettingsUpdate,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)

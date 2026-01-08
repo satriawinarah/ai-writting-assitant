@@ -1,6 +1,6 @@
 import logging
 import time
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -8,6 +8,7 @@ from ..services.llm_service import llm_service
 from ..database import get_db
 from ..models.project import User, UserSettings
 from ..dependencies.auth import get_current_approved_user
+from ..utils.rate_limiter import limiter, RATE_LIMIT_AI, RATE_LIMIT_DEFAULT
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,9 @@ class LiveReviewResponse(BaseModel):
 
 
 @router.post("/continue", response_model=ContinuationResponse)
+@limiter.limit(RATE_LIMIT_AI)
 async def generate_continuation(
+    http_request: Request,
     request: ContinuationRequest,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
@@ -134,7 +137,9 @@ async def generate_continuation(
 
 
 @router.post("/improve", response_model=ImprovementResponse)
+@limiter.limit(RATE_LIMIT_AI)
 async def improve_text(
+    http_request: Request,
     request: ImprovementRequest,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
@@ -190,7 +195,8 @@ async def improve_text(
 
 
 @router.post("/suggest-title", response_model=TitleSuggestionResponse)
-async def suggest_title(request: TitleSuggestionRequest):
+@limiter.limit(RATE_LIMIT_AI)
+async def suggest_title(http_request: Request, request: TitleSuggestionRequest):
     """Generate title suggestions based on content"""
     start_time = time.time()
     request_id = id(request)
@@ -236,7 +242,9 @@ async def suggest_title(request: TitleSuggestionRequest):
 
 
 @router.post("/live-review", response_model=LiveReviewResponse)
+@limiter.limit(RATE_LIMIT_AI)
 async def live_review(
+    http_request: Request,
     request: LiveReviewRequest,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
@@ -284,7 +292,8 @@ async def live_review(
 
 
 @router.get("/status")
-def check_ai_status():
+@limiter.limit(RATE_LIMIT_DEFAULT)
+def check_ai_status(request: Request):
     """Check AI service status and provider information"""
     provider_info = llm_service.get_provider_info()
 

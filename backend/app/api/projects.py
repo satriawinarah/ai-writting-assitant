@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from typing import List
 
 from ..database import get_db
@@ -14,6 +15,7 @@ from ..schemas import (
     ChapterUpdate,
 )
 from ..dependencies.auth import get_current_approved_user
+from ..utils.rate_limiter import limiter, RATE_LIMIT_DEFAULT
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -23,12 +25,28 @@ CHAPTER_NOT_FOUND = "Chapter not found"
 
 
 @router.get("", response_model=List[ProjectList])
+@limiter.limit(RATE_LIMIT_DEFAULT)
 def list_projects(
+    request: Request,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
     """List all projects for the current user"""
-    projects = db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.updated_at.desc()).all()
+    # Use subquery to count chapters efficiently (avoids N+1 query problem)
+    chapter_count_subquery = (
+        db.query(Chapter.project_id, func.count(Chapter.id).label("chapter_count"))
+        .group_by(Chapter.project_id)
+        .subquery()
+    )
+
+    projects = (
+        db.query(Project, func.coalesce(chapter_count_subquery.c.chapter_count, 0).label("chapter_count"))
+        .outerjoin(chapter_count_subquery, Project.id == chapter_count_subquery.c.project_id)
+        .filter(Project.user_id == current_user.id)
+        .order_by(Project.updated_at.desc())
+        .all()
+    )
+
     return [
         ProjectList(
             id=p.id,
@@ -36,14 +54,16 @@ def list_projects(
             description=p.description,
             created_at=p.created_at,
             updated_at=p.updated_at,
-            chapter_count=len(p.chapters),
+            chapter_count=chapter_count,
         )
-        for p in projects
+        for p, chapter_count in projects
     ]
 
 
 @router.post("", response_model=ProjectSchema)
+@limiter.limit(RATE_LIMIT_DEFAULT)
 def create_project(
+    request: Request,
     project: ProjectCreate,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
@@ -57,7 +77,9 @@ def create_project(
 
 
 @router.get("/{project_id}", response_model=ProjectSchema)
+@limiter.limit(RATE_LIMIT_DEFAULT)
 def get_project(
+    request: Request,
     project_id: int,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
@@ -73,7 +95,9 @@ def get_project(
 
 
 @router.put("/{project_id}", response_model=ProjectSchema)
+@limiter.limit(RATE_LIMIT_DEFAULT)
 def update_project(
+    request: Request,
     project_id: int,
     project: ProjectUpdate,
     current_user: User = Depends(get_current_approved_user),
@@ -96,7 +120,9 @@ def update_project(
 
 
 @router.delete("/{project_id}")
+@limiter.limit(RATE_LIMIT_DEFAULT)
 def delete_project(
+    request: Request,
     project_id: int,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
@@ -116,7 +142,9 @@ def delete_project(
 
 # Chapter endpoints
 @router.post("/{project_id}/chapters", response_model=ChapterSchema)
+@limiter.limit(RATE_LIMIT_DEFAULT)
 def create_chapter(
+    request: Request,
     project_id: int,
     chapter: ChapterCreate,
     current_user: User = Depends(get_current_approved_user),
@@ -138,7 +166,9 @@ def create_chapter(
 
 
 @router.get("/{project_id}/chapters/{chapter_id}", response_model=ChapterSchema)
+@limiter.limit(RATE_LIMIT_DEFAULT)
 def get_chapter(
+    request: Request,
     project_id: int,
     chapter_id: int,
     current_user: User = Depends(get_current_approved_user),
@@ -161,7 +191,9 @@ def get_chapter(
 
 
 @router.put("/{project_id}/chapters/{chapter_id}", response_model=ChapterSchema)
+@limiter.limit(RATE_LIMIT_DEFAULT)
 def update_chapter(
+    request: Request,
     project_id: int,
     chapter_id: int,
     chapter: ChapterUpdate,
@@ -191,7 +223,9 @@ def update_chapter(
 
 
 @router.delete("/{project_id}/chapters/{chapter_id}")
+@limiter.limit(RATE_LIMIT_DEFAULT)
 def delete_chapter(
+    request: Request,
     project_id: int,
     chapter_id: int,
     current_user: User = Depends(get_current_approved_user),
