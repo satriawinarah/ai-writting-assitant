@@ -6,12 +6,14 @@ import ProjectModal from './components/ProjectModal';
 import ChapterModal from './components/ChapterModal';
 import Login from './components/Login';
 import Register from './components/Register';
+import LandingPage from './components/LandingPage';
 import { projectsAPI, chaptersAPI, authAPI } from './services/api';
 
 export default function App() {
   // Authentication state
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLanding, setShowLanding] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
 
   // App state
@@ -78,6 +80,7 @@ export default function App() {
       setProjects([]);
       setActiveProject(null);
       setActiveChapter(null);
+      setShowLanding(true);
     }
   };
 
@@ -178,8 +181,15 @@ export default function App() {
     );
   }
 
-  // Show login/register if not authenticated
+  // Show landing/login/register if not authenticated
   if (!user) {
+    if (showLanding) {
+      return (
+        <LandingPage
+          onGoToLogin={() => setShowLanding(false)}
+        />
+      );
+    }
     if (showRegister) {
       return (
         <Register
