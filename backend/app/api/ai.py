@@ -79,42 +79,42 @@ class LiveReviewResponse(BaseModel):
 @router.post("/continue", response_model=ContinuationResponse)
 @limiter.limit(RATE_LIMIT_AI)
 async def generate_continuation(
-    http_request: Request,
-    request: ContinuationRequest,
+    request: Request,
+    body: ContinuationRequest,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
     """Generate text continuation based on context"""
     start_time = time.time()
-    request_id = id(request)
+    request_id = id(body)
 
-    logger.info(f"[{request_id}] Received continuation request - context length: {len(request.context)}, max_tokens: {request.max_tokens}, temperature: {request.temperature}")
-    logger.debug(f"[{request_id}] Context preview: {request.context[:100]}...")
+    logger.info(f"[{request_id}] Received continuation request - context length: {len(body.context)}, max_tokens: {body.max_tokens}, temperature: {body.temperature}")
+    logger.debug(f"[{request_id}] Context preview: {body.context[:100]}...")
 
     # Get user's custom prompts if available
     user_settings = db.query(UserSettings).filter(UserSettings.user_id == current_user.id).first()
     custom_prompts = user_settings.custom_prompts if user_settings else None
 
     # Check if model is available
-    logger.info(f"[{request_id}] Checking model availability for {request.model}...")
-    if not llm_service.check_model_available(request.model):
-        logger.error(f"[{request_id}] Model {request.model} not available")
+    logger.info(f"[{request_id}] Checking model availability for {body.model}...")
+    if not llm_service.check_model_available(body.model):
+        logger.error(f"[{request_id}] Model {body.model} not available")
         raise HTTPException(
             status_code=503,
-            detail=f"Model {request.model} is not available. Please check API key configuration."
+            detail=f"Model {body.model} is not available. Please check API key configuration."
         )
-    logger.info(f"[{request_id}] Model {request.model} is available")
+    logger.info(f"[{request_id}] Model {body.model} is available")
 
     try:
-        logger.info(f"[{request_id}] Starting generation with llm_service using {request.model}...")
+        logger.info(f"[{request_id}] Starting generation with llm_service using {body.model}...")
         continuation = await llm_service.generate_continuation(
-            context=request.context,
-            max_tokens=request.max_tokens,
-            temperature=request.temperature,
-            writing_style=request.writing_style,
-            paragraph_count=request.paragraph_count,
-            brief_idea=request.brief_idea,
-            model=request.model,
+            context=body.context,
+            max_tokens=body.max_tokens,
+            temperature=body.temperature,
+            writing_style=body.writing_style,
+            paragraph_count=body.paragraph_count,
+            brief_idea=body.brief_idea,
+            model=body.model,
             custom_prompts=custom_prompts
         )
 
@@ -124,7 +124,7 @@ async def generate_continuation(
 
         return ContinuationResponse(
             continuation=continuation,
-            model=request.model
+            model=body.model
         )
 
     except Exception as e:
@@ -139,40 +139,40 @@ async def generate_continuation(
 @router.post("/improve", response_model=ImprovementResponse)
 @limiter.limit(RATE_LIMIT_AI)
 async def improve_text(
-    http_request: Request,
-    request: ImprovementRequest,
+    request: Request,
+    body: ImprovementRequest,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
     """Improve selected text based on instruction"""
     start_time = time.time()
-    request_id = id(request)
+    request_id = id(body)
 
-    logger.info(f"[{request_id}] Received improvement request - text length: {len(request.text)}, instruction: {request.instruction[:50]}...")
-    logger.debug(f"[{request_id}] Text preview: {request.text[:100]}...")
+    logger.info(f"[{request_id}] Received improvement request - text length: {len(body.text)}, instruction: {body.instruction[:50]}...")
+    logger.debug(f"[{request_id}] Text preview: {body.text[:100]}...")
 
     # Get user's custom prompts if available
     user_settings = db.query(UserSettings).filter(UserSettings.user_id == current_user.id).first()
     custom_prompts = user_settings.custom_prompts if user_settings else None
 
     # Check if model is available
-    logger.info(f"[{request_id}] Checking model availability for {request.model}...")
-    if not llm_service.check_model_available(request.model):
-        logger.error(f"[{request_id}] Model {request.model} not available")
+    logger.info(f"[{request_id}] Checking model availability for {body.model}...")
+    if not llm_service.check_model_available(body.model):
+        logger.error(f"[{request_id}] Model {body.model} not available")
         raise HTTPException(
             status_code=503,
-            detail=f"Model {request.model} is not available. Please check API key configuration."
+            detail=f"Model {body.model} is not available. Please check API key configuration."
         )
-    logger.info(f"[{request_id}] Model {request.model} is available")
+    logger.info(f"[{request_id}] Model {body.model} is available")
 
     try:
-        logger.info(f"[{request_id}] Starting improvement with llm_service using {request.model}...")
+        logger.info(f"[{request_id}] Starting improvement with llm_service using {body.model}...")
         improved_text = await llm_service.improve_text(
-            text=request.text,
-            instruction=request.instruction,
-            temperature=request.temperature,
-            writing_style=request.writing_style,
-            model=request.model,
+            text=body.text,
+            instruction=body.instruction,
+            temperature=body.temperature,
+            writing_style=body.writing_style,
+            model=body.model,
             custom_prompts=custom_prompts
         )
 
@@ -182,7 +182,7 @@ async def improve_text(
 
         return ImprovementResponse(
             improved_text=improved_text,
-            model=request.model
+            model=body.model
         )
 
     except Exception as e:
@@ -196,31 +196,31 @@ async def improve_text(
 
 @router.post("/suggest-title", response_model=TitleSuggestionResponse)
 @limiter.limit(RATE_LIMIT_AI)
-async def suggest_title(http_request: Request, request: TitleSuggestionRequest):
+async def suggest_title(request: Request, body: TitleSuggestionRequest):
     """Generate title suggestions based on content"""
     start_time = time.time()
-    request_id = id(request)
+    request_id = id(body)
 
-    logger.info(f"[{request_id}] Received title suggestion request - content length: {len(request.content)}, title_style: {request.title_style}")
-    logger.debug(f"[{request_id}] Content preview: {request.content[:100]}...")
+    logger.info(f"[{request_id}] Received title suggestion request - content length: {len(body.content)}, title_style: {body.title_style}")
+    logger.debug(f"[{request_id}] Content preview: {body.content[:100]}...")
 
     # Check if model is available
-    logger.info(f"[{request_id}] Checking model availability for {request.model}...")
-    if not llm_service.check_model_available(request.model):
-        logger.error(f"[{request_id}] Model {request.model} not available")
+    logger.info(f"[{request_id}] Checking model availability for {body.model}...")
+    if not llm_service.check_model_available(body.model):
+        logger.error(f"[{request_id}] Model {body.model} not available")
         raise HTTPException(
             status_code=503,
-            detail=f"Model {request.model} is not available. Please check API key configuration."
+            detail=f"Model {body.model} is not available. Please check API key configuration."
         )
-    logger.info(f"[{request_id}] Model {request.model} is available")
+    logger.info(f"[{request_id}] Model {body.model} is available")
 
     try:
-        logger.info(f"[{request_id}] Starting title generation with llm_service using {request.model}...")
+        logger.info(f"[{request_id}] Starting title generation with llm_service using {body.model}...")
         titles = await llm_service.suggest_title(
-            content=request.content,
-            title_style=request.title_style,
-            temperature=request.temperature,
-            model=request.model
+            content=body.content,
+            title_style=body.title_style,
+            temperature=body.temperature,
+            model=body.model
         )
 
         elapsed_time = time.time() - start_time
@@ -229,7 +229,7 @@ async def suggest_title(http_request: Request, request: TitleSuggestionRequest):
 
         return TitleSuggestionResponse(
             titles=titles,
-            model=request.model
+            model=body.model
         )
 
     except Exception as e:
@@ -244,34 +244,34 @@ async def suggest_title(http_request: Request, request: TitleSuggestionRequest):
 @router.post("/live-review", response_model=LiveReviewResponse)
 @limiter.limit(RATE_LIMIT_AI)
 async def live_review(
-    http_request: Request,
-    request: LiveReviewRequest,
+    request: Request,
+    body: LiveReviewRequest,
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
     """Analyze text and return issues with suggestions for improvement"""
     start_time = time.time()
-    request_id = id(request)
+    request_id = id(body)
 
-    logger.info(f"[{request_id}] Received live review request - content length: {len(request.content)}")
-    logger.debug(f"[{request_id}] Content preview: {request.content[:100]}...")
+    logger.info(f"[{request_id}] Received live review request - content length: {len(body.content)}")
+    logger.debug(f"[{request_id}] Content preview: {body.content[:100]}...")
 
     # Check if model is available
-    logger.info(f"[{request_id}] Checking model availability for {request.model}...")
-    if not llm_service.check_model_available(request.model):
-        logger.error(f"[{request_id}] Model {request.model} not available")
+    logger.info(f"[{request_id}] Checking model availability for {body.model}...")
+    if not llm_service.check_model_available(body.model):
+        logger.error(f"[{request_id}] Model {body.model} not available")
         raise HTTPException(
             status_code=503,
-            detail=f"Model {request.model} is not available. Please check API key configuration."
+            detail=f"Model {body.model} is not available. Please check API key configuration."
         )
-    logger.info(f"[{request_id}] Model {request.model} is available")
+    logger.info(f"[{request_id}] Model {body.model} is available")
 
     try:
-        logger.info(f"[{request_id}] Starting live review with llm_service using {request.model}...")
+        logger.info(f"[{request_id}] Starting live review with llm_service using {body.model}...")
         issues = await llm_service.live_review(
-            content=request.content,
-            temperature=request.temperature,
-            model=request.model
+            content=body.content,
+            temperature=body.temperature,
+            model=body.model
         )
 
         elapsed_time = time.time() - start_time
@@ -279,7 +279,7 @@ async def live_review(
 
         return LiveReviewResponse(
             issues=issues,
-            model=request.model
+            model=body.model
         )
 
     except Exception as e:
