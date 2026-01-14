@@ -1,19 +1,40 @@
+"""
+Application configuration using Pydantic Settings.
+
+This module provides centralized configuration management with
+environment variable support and model-to-API-key mapping.
+"""
+
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from typing import Callable
+
+
+# Model prefix to API key attribute mapping registry
+# Format: (prefix, api_key_attribute_name)
+MODEL_API_KEY_REGISTRY: list[tuple[str, str]] = [
+    ("openai/", "openrouter_api_key"),
+    ("llama-", "groq_api_key"),
+    ("mixtral-", "groq_api_key"),
+    ("gemma-", "groq_api_key"),
+]
+
+# Default API key attribute if no prefix matches
+DEFAULT_API_KEY_ATTR = "groq_api_key"
 
 
 class Settings(BaseSettings):
-    """Application settings"""
+    """Application settings with environment variable support."""
 
     # Database
     database_url: str = "sqlite:///./diksiai.db"
 
     # Groq API (Cloud - Free)
-    groq_api_key: str = ""  # Set via environment variable GROQ_API_KEY
-    groq_model: str = "llama-3.1-70b-versatile"  # Options: llama-3.1-70b-versatile, llama-3.1-8b-instant
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.1-70b-versatile"
 
-    # Model-specific API keys
-    openrouter_api_key: str = ""  # For openai/gpt-oss-120b model
+    # OpenRouter API (for OpenAI models)
+    openrouter_api_key: str = ""
 
     # Application
     debug: bool = True
@@ -26,14 +47,23 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 10080  # 7 days
 
     def get_api_key_for_model(self, model: str) -> str:
-        """Get the appropriate API key for the given model"""
-        if model.startswith("openai/"):
-            return self.openrouter_api_key
-        elif model.startswith("llama-"):
-            return self.groq_api_key
-        else:
-            # Default to Groq API key
-            return self.groq_api_key
+        """
+        Get the appropriate API key for the given model.
+
+        Uses the MODEL_API_KEY_REGISTRY to find the correct API key
+        based on model prefix. Falls back to DEFAULT_API_KEY_ATTR.
+
+        Args:
+            model: The model identifier (e.g., "openai/gpt-oss-120b")
+
+        Returns:
+            The API key string for the model
+        """
+        for prefix, api_key_attr in MODEL_API_KEY_REGISTRY:
+            if model.startswith(prefix):
+                return getattr(self, api_key_attr)
+
+        return getattr(self, DEFAULT_API_KEY_ATTR)
 
     class Config:
         env_file = ".env"
@@ -42,5 +72,5 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    """Get cached settings instance"""
+    """Get cached settings instance."""
     return Settings()

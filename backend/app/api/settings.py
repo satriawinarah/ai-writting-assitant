@@ -1,12 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+"""
+Settings API endpoints for user preferences and configurations.
+
+This module provides endpoints for managing user settings
+including custom writing style prompts.
+"""
+
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
-from typing import Dict
 
 from ..database import get_db
 from ..models.project import User, UserSettings
 from ..schemas.settings import UserSettingsResponse, UserSettingsUpdate
 from ..dependencies.auth import get_current_approved_user
-from ..services.llm_service import LLMService
+from ..services.llm import WRITING_STYLES, TITLE_STYLES
 from ..utils.rate_limiter import limiter, RATE_LIMIT_DEFAULT
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -15,11 +21,10 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 @router.get("/default-prompts")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_default_prompts(request: Request):
-    """Get all default writing style prompts"""
-    llm_service = LLMService()
+    """Get all default writing style prompts."""
     return {
-        "writing_styles": llm_service.WRITING_STYLES,
-        "title_styles": llm_service.TITLE_STYLES
+        "writing_styles": WRITING_STYLES,
+        "title_styles": TITLE_STYLES
     }
 
 

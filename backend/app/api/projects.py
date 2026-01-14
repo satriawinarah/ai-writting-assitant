@@ -1,10 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+"""
+Projects API endpoints for managing writing projects and chapters.
+
+This module provides CRUD endpoints for projects and chapters,
+using the repository pattern for database operations.
+"""
+
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy.orm import Session
 from typing import List
 
 from ..database import get_db
-from ..models import Project, Chapter, User
+from ..models import User
 from ..schemas import (
     Project as ProjectSchema,
     ProjectCreate,
@@ -16,13 +22,12 @@ from ..schemas import (
 )
 from ..dependencies.auth import get_current_approved_user
 from ..utils.rate_limiter import limiter, RATE_LIMIT_DEFAULT
+from ..repositories import ProjectRepository, ChapterRepository
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
-# Error message constants
-PROJECT_NOT_FOUND = "Project not found"
-CHAPTER_NOT_FOUND = "Chapter not found"
 
+# Project Endpoints
 
 @router.get("", response_model=List[ProjectList])
 @limiter.limit(RATE_LIMIT_DEFAULT)
@@ -31,21 +36,9 @@ def list_projects(
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
-    """List all projects for the current user"""
-    # Use subquery to count chapters efficiently (avoids N+1 query problem)
-    chapter_count_subquery = (
-        db.query(Chapter.project_id, func.count(Chapter.id).label("chapter_count"))
-        .group_by(Chapter.project_id)
-        .subquery()
-    )
-
-    projects = (
-        db.query(Project, func.coalesce(chapter_count_subquery.c.chapter_count, 0).label("chapter_count"))
-        .outerjoin(chapter_count_subquery, Project.id == chapter_count_subquery.c.project_id)
-        .filter(Project.user_id == current_user.id)
-        .order_by(Project.updated_at.desc())
-        .all()
-    )
+    """List all projects for the current user."""
+    repo = ProjectRepository(db)
+    projects = repo.list_for_user(current_user.id)
 
     return [
         ProjectList(
@@ -68,12 +61,9 @@ def create_project(
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
-    """Create a new project for the current user"""
-    db_project = Project(**project.model_dump(), user_id=current_user.id)
-    db.add(db_project)
-    db.commit()
-    db.refresh(db_project)
-    return db_project
+    """Create a new project for the current user."""
+    repo = ProjectRepository(db)
+    return repo.create(current_user.id, **project.model_dump())
 
 
 @router.get("/{project_id}", response_model=ProjectSchema)
@@ -84,14 +74,9 @@ def get_project(
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
-    """Get a project by ID (only if it belongs to current user)"""
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
-    if not project:
-        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
-    return project
+    """Get a project by ID (only if it belongs to current user)."""
+    repo = ProjectRepository(db)
+    return repo.get_or_404(project_id, current_user.id)
 
 
 @router.put("/{project_id}", response_model=ProjectSchema)
@@ -103,20 +88,10 @@ def update_project(
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
-    """Update a project (only if it belongs to current user)"""
-    db_project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
-    if not db_project:
-        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
-
-    for key, value in project.model_dump(exclude_unset=True).items():
-        setattr(db_project, key, value)
-
-    db.commit()
-    db.refresh(db_project)
-    return db_project
+    """Update a project (only if it belongs to current user)."""
+    repo = ProjectRepository(db)
+    db_project = repo.get_or_404(project_id, current_user.id)
+    return repo.update(db_project, **project.model_dump(exclude_unset=True))
 
 
 @router.delete("/{project_id}")
@@ -127,20 +102,15 @@ def delete_project(
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a project (only if it belongs to current user)"""
-    db_project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
-    if not db_project:
-        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
-
-    db.delete(db_project)
-    db.commit()
+    """Delete a project (only if it belongs to current user)."""
+    repo = ProjectRepository(db)
+    db_project = repo.get_or_404(project_id, current_user.id)
+    repo.delete(db_project)
     return {"message": "Project deleted successfully"}
 
 
-# Chapter endpoints
+# Chapter Endpoints
+
 @router.post("/{project_id}/chapters", response_model=ChapterSchema)
 @limiter.limit(RATE_LIMIT_DEFAULT)
 def create_chapter(
@@ -150,19 +120,12 @@ def create_chapter(
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
-    """Create a new chapter in a project (only if project belongs to current user)"""
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
-    if not project:
-        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND)
+    """Create a new chapter in a project (only if project belongs to current user)."""
+    project_repo = ProjectRepository(db)
+    project_repo.get_or_404(project_id, current_user.id)
 
-    db_chapter = Chapter(project_id=project_id, **chapter.model_dump())
-    db.add(db_chapter)
-    db.commit()
-    db.refresh(db_chapter)
-    return db_chapter
+    chapter_repo = ChapterRepository(db)
+    return chapter_repo.create(project_id, **chapter.model_dump())
 
 
 @router.get("/{project_id}/chapters/{chapter_id}", response_model=ChapterSchema)
@@ -174,20 +137,9 @@ def get_chapter(
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
-    """Get a chapter by ID (only if project belongs to current user)"""
-    chapter = (
-        db.query(Chapter)
-        .join(Project)
-        .filter(
-            Chapter.id == chapter_id,
-            Chapter.project_id == project_id,
-            Project.user_id == current_user.id
-        )
-        .first()
-    )
-    if not chapter:
-        raise HTTPException(status_code=404, detail=CHAPTER_NOT_FOUND)
-    return chapter
+    """Get a chapter by ID (only if project belongs to current user)."""
+    repo = ChapterRepository(db)
+    return repo.get_or_404(chapter_id, project_id, current_user.id)
 
 
 @router.put("/{project_id}/chapters/{chapter_id}", response_model=ChapterSchema)
@@ -200,26 +152,10 @@ def update_chapter(
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
-    """Update a chapter (only if project belongs to current user)"""
-    db_chapter = (
-        db.query(Chapter)
-        .join(Project)
-        .filter(
-            Chapter.id == chapter_id,
-            Chapter.project_id == project_id,
-            Project.user_id == current_user.id
-        )
-        .first()
-    )
-    if not db_chapter:
-        raise HTTPException(status_code=404, detail=CHAPTER_NOT_FOUND)
-
-    for key, value in chapter.model_dump(exclude_unset=True).items():
-        setattr(db_chapter, key, value)
-
-    db.commit()
-    db.refresh(db_chapter)
-    return db_chapter
+    """Update a chapter (only if project belongs to current user)."""
+    repo = ChapterRepository(db)
+    db_chapter = repo.get_or_404(chapter_id, project_id, current_user.id)
+    return repo.update(db_chapter, **chapter.model_dump(exclude_unset=True))
 
 
 @router.delete("/{project_id}/chapters/{chapter_id}")
@@ -231,20 +167,8 @@ def delete_chapter(
     current_user: User = Depends(get_current_approved_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a chapter (only if project belongs to current user)"""
-    db_chapter = (
-        db.query(Chapter)
-        .join(Project)
-        .filter(
-            Chapter.id == chapter_id,
-            Chapter.project_id == project_id,
-            Project.user_id == current_user.id
-        )
-        .first()
-    )
-    if not db_chapter:
-        raise HTTPException(status_code=404, detail=CHAPTER_NOT_FOUND)
-
-    db.delete(db_chapter)
-    db.commit()
+    """Delete a chapter (only if project belongs to current user)."""
+    repo = ChapterRepository(db)
+    db_chapter = repo.get_or_404(chapter_id, project_id, current_user.id)
+    repo.delete(db_chapter)
     return {"message": "Chapter deleted successfully"}
