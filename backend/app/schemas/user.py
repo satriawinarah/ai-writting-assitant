@@ -1,13 +1,16 @@
+"""
+User-related Pydantic schemas for request/response validation.
+"""
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
 from typing import Optional
 import re
 
-# Constants for validation
-MAX_USERNAME_LENGTH = 50
-MAX_FULLNAME_LENGTH = 100
-MIN_PASSWORD_LENGTH = 8
-MAX_PASSWORD_LENGTH = 128
+from ..constants import (
+    MAX_USERNAME_LENGTH, MAX_FULLNAME_LENGTH,
+    MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH
+)
 
 
 class UserBase(BaseModel):

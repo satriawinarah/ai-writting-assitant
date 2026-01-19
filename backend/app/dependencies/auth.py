@@ -1,12 +1,18 @@
+"""
+Authentication dependencies for FastAPI endpoints.
+
+Provides dependency injection for user authentication and authorization.
+"""
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import Optional
 
 from ..database import get_db
-from ..models.project import User
+from ..models import User
 from ..utils.auth import verify_token
-from ..schemas.user import TokenData
+from ..services.auth_service import AuthService
 
 security = HTTPBearer()
 
@@ -34,7 +40,8 @@ def get_current_user(
     if user_id is None:
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    auth_service = AuthService(db)
+    user = auth_service.get_user_by_id(int(user_id))
     if user is None:
         raise credentials_exception
 

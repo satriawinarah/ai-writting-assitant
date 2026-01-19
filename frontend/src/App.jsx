@@ -14,6 +14,8 @@ import ChapterModal from './components/ChapterModal';
 import Login from './components/Login';
 import Register from './components/Register';
 import LandingPage from './components/LandingPage';
+import ErrorBoundary from './components/ErrorBoundary';
+import EditorErrorBoundary from './components/EditorErrorBoundary';
 import { useAuth, useProjects } from './hooks';
 
 export default function App() {
@@ -70,15 +72,21 @@ export default function App() {
   // Show main app if authenticated
   const renderMainContent = () => {
     if (currentView === 'settings') {
-      return <Settings />;
+      return (
+        <ErrorBoundary>
+          <Settings />
+        </ErrorBoundary>
+      );
     }
 
     if (projectManager.activeProject && projectManager.activeChapter) {
       return (
-        <Editor
-          chapter={projectManager.activeChapter}
-          onUpdate={projectManager.updateChapterContent}
-        />
+        <EditorErrorBoundary>
+          <Editor
+            chapter={projectManager.activeChapter}
+            onUpdate={projectManager.updateChapterContent}
+          />
+        </EditorErrorBoundary>
       );
     }
 
@@ -101,22 +109,24 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar
-        projects={projectManager.projects}
-        activeProject={projectManager.activeProject}
-        activeChapter={projectManager.activeChapter}
-        currentView={currentView}
-        onSelectProject={projectManager.loadProject}
-        onSelectChapter={projectManager.selectChapter}
-        onNewProject={() => setShowProjectModal(true)}
-        onNewChapter={() => setShowChapterModal(true)}
-        onViewSettings={() => setCurrentView('settings')}
-        onViewEditor={() => setCurrentView('editor')}
-        onDeleteProject={projectManager.deleteProject}
-        onDeleteChapter={projectManager.deleteChapter}
-        onRenameProject={projectManager.renameProject}
-        onRenameChapter={projectManager.renameChapter}
-      />
+      <ErrorBoundary>
+        <Sidebar
+          projects={projectManager.projects}
+          activeProject={projectManager.activeProject}
+          activeChapter={projectManager.activeChapter}
+          currentView={currentView}
+          onSelectProject={projectManager.loadProject}
+          onSelectChapter={projectManager.selectChapter}
+          onNewProject={() => setShowProjectModal(true)}
+          onNewChapter={() => setShowChapterModal(true)}
+          onViewSettings={() => setCurrentView('settings')}
+          onViewEditor={() => setCurrentView('editor')}
+          onDeleteProject={projectManager.deleteProject}
+          onDeleteChapter={projectManager.deleteChapter}
+          onRenameProject={projectManager.renameProject}
+          onRenameChapter={projectManager.renameChapter}
+        />
+      </ErrorBoundary>
 
       <div className="main-content">
         <div className="user-bar">

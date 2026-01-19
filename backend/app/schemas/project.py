@@ -2,16 +2,16 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 
-# Constants for validation
-MAX_TITLE_LENGTH = 255
-MAX_DESCRIPTION_LENGTH = 2000
-MAX_CONTENT_LENGTH = 500000  # ~500KB for chapter content
+from ..constants import (
+    MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH,
+    MAX_CONTENT_LENGTH, MAX_CHAPTER_ORDER
+)
 
 
 class ChapterBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=MAX_TITLE_LENGTH)
     content: Optional[str] = Field(default="", max_length=MAX_CONTENT_LENGTH)
-    order: int = Field(default=0, ge=0, le=10000)
+    order: int = Field(default=0, ge=0, le=MAX_CHAPTER_ORDER)
 
 
 class ChapterCreate(ChapterBase):
@@ -21,7 +21,7 @@ class ChapterCreate(ChapterBase):
 class ChapterUpdate(BaseModel):
     title: Optional[str] = Field(default=None, min_length=1, max_length=MAX_TITLE_LENGTH)
     content: Optional[str] = Field(default=None, max_length=MAX_CONTENT_LENGTH)
-    order: Optional[int] = Field(default=None, ge=0, le=10000)
+    order: Optional[int] = Field(default=None, ge=0, le=MAX_CHAPTER_ORDER)
 
 
 class Chapter(ChapterBase):

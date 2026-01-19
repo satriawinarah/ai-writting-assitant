@@ -11,22 +11,27 @@ from sqlalchemy.orm import Session
 
 from ..services.llm import llm_service
 from ..database import get_db
-from ..models.project import User, UserSettings
+from ..models import User, UserSettings
 from ..dependencies.auth import get_current_approved_user
 from ..utils.rate_limiter import limiter, RATE_LIMIT_AI, RATE_LIMIT_DEFAULT
 from ..utils.ai_endpoint import AIRequestContext, validate_model_availability, handle_ai_error
+from ..constants import (
+    DEFAULT_MODEL, DEFAULT_WRITING_STYLE, DEFAULT_TITLE_STYLE,
+    DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS, DEFAULT_PARAGRAPH_COUNT,
+    DEFAULT_IMPROVEMENT_INSTRUCTION
+)
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
 
 class ContinuationRequest(BaseModel):
     context: str
-    max_tokens: int = 10000
-    temperature: float = 0.7
-    writing_style: str = "puitis"
-    paragraph_count: int = 1
+    max_tokens: int = DEFAULT_MAX_TOKENS
+    temperature: float = DEFAULT_TEMPERATURE
+    writing_style: str = DEFAULT_WRITING_STYLE
+    paragraph_count: int = DEFAULT_PARAGRAPH_COUNT
     brief_idea: str = ""
-    model: str = "openai/gpt-oss-120b"
+    model: str = DEFAULT_MODEL
 
 
 class ContinuationResponse(BaseModel):
@@ -36,10 +41,10 @@ class ContinuationResponse(BaseModel):
 
 class ImprovementRequest(BaseModel):
     text: str
-    instruction: str = "Tolong poles teks berikut agar lebih hidup, jelas, dan memiliki gaya bahasa yang menarik serta alami untuk dibaca, tanpa mengubah inti cerita atau suasana emosinya."
-    temperature: float = 0.7
-    writing_style: str = "puitis"
-    model: str = "openai/gpt-oss-120b"
+    instruction: str = DEFAULT_IMPROVEMENT_INSTRUCTION
+    temperature: float = DEFAULT_TEMPERATURE
+    writing_style: str = DEFAULT_WRITING_STYLE
+    model: str = DEFAULT_MODEL
 
 
 class ImprovementResponse(BaseModel):
@@ -49,9 +54,9 @@ class ImprovementResponse(BaseModel):
 
 class TitleSuggestionRequest(BaseModel):
     content: str
-    title_style: str = "click_bait"
-    temperature: float = 0.7
-    model: str = "openai/gpt-oss-120b"
+    title_style: str = DEFAULT_TITLE_STYLE
+    temperature: float = DEFAULT_TEMPERATURE
+    model: str = DEFAULT_MODEL
 
 
 class TitleSuggestionResponse(BaseModel):
@@ -71,8 +76,8 @@ class ReviewIssue(BaseModel):
 
 class LiveReviewRequest(BaseModel):
     content: str
-    model: str = "openai/gpt-oss-120b"
-    temperature: float = 0.7
+    model: str = DEFAULT_MODEL
+    temperature: float = DEFAULT_TEMPERATURE
 
 
 class LiveReviewResponse(BaseModel):

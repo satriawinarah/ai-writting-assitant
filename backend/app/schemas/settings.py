@@ -2,10 +2,10 @@ from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional, Dict
 
-# Constants for validation
-MAX_PROMPT_KEY_LENGTH = 50
-MAX_PROMPT_VALUE_LENGTH = 5000
-MAX_CUSTOM_PROMPTS = 20
+from ..constants import (
+    MAX_PROMPT_KEY_LENGTH, MAX_PROMPT_VALUE_LENGTH,
+    MAX_CUSTOM_PROMPTS
+)
 
 
 class UserSettingsBase(BaseModel):

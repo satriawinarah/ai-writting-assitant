@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models.project import User, UserSettings
+from ..models import User, UserSettings
 from ..schemas.settings import UserSettingsResponse, UserSettingsUpdate
 from ..dependencies.auth import get_current_approved_user
 from ..services.llm import WRITING_STYLES, TITLE_STYLES
