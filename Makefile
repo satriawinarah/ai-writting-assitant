@@ -4,7 +4,8 @@
 
 .PHONY: help install-deps setup-backend setup-frontend build deploy restart \
         status logs stop start update backup clean test-local \
-        setup-systemd setup-nginx setup-firewall setup-ssl
+        setup-systemd setup-nginx setup-firewall setup-ssl \
+        verify run dev
 
 # Variables
 PROJECT_DIR := $(shell pwd)
@@ -56,6 +57,11 @@ help:
 	@echo "  make restart         - Restart the application service"
 	@echo "  make status          - Check service status"
 	@echo "  make logs            - View live logs (Ctrl+C to exit)"
+	@echo ""
+	@echo "$(YELLOW)Development Commands:$(NC)"
+	@echo "  make run             - Run both backend and frontend (production-like)"
+	@echo "  make dev             - Run both servers in development mode with hot reload"
+	@echo "  make verify          - Verify system prerequisites and project setup"
 	@echo ""
 	@echo "$(YELLOW)Maintenance Commands:$(NC)"
 	@echo "  make backup          - Backup database and .env file"
@@ -303,6 +309,98 @@ test-local:
 	@echo "$(YELLOW)Starting local test server on port 8000...$(NC)"
 	@echo "Press Ctrl+C to stop"
 	cd $(BACKEND_DIR) && $(VENV)/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+#------------------------------------------------------------------------------
+# DEVELOPMENT COMMANDS
+#------------------------------------------------------------------------------
+verify:
+	@echo "$(GREEN)========================================$(NC)"
+	@echo "$(GREEN)Author AI IDE - System Verification$(NC)"
+	@echo "$(GREEN)========================================$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Checking Prerequisites...$(NC)"
+	@echo "─────────────────────────────────────────"
+	@command -v python3 > /dev/null && echo "$(GREEN)✓$(NC) Python is installed: $$(python3 --version)" || echo "$(RED)✗$(NC) Python is NOT installed"
+	@command -v node > /dev/null && echo "$(GREEN)✓$(NC) Node.js is installed: $$(node --version)" || echo "$(RED)✗$(NC) Node.js is NOT installed"
+	@command -v npm > /dev/null && echo "$(GREEN)✓$(NC) npm is installed: $$(npm --version)" || echo "$(RED)✗$(NC) npm is NOT installed"
+	@echo ""
+	@echo "$(YELLOW)Checking Project Structure...$(NC)"
+	@echo "─────────────────────────────────────────"
+	@[ -f $(BACKEND_DIR)/requirements.txt ] && echo "$(GREEN)✓$(NC) Backend files present" || echo "$(RED)✗$(NC) Backend files missing"
+	@[ -f $(FRONTEND_DIR)/package.json ] && echo "$(GREEN)✓$(NC) Frontend files present" || echo "$(RED)✗$(NC) Frontend files missing"
+	@[ -d $(VENV) ] && echo "$(GREEN)✓$(NC) Python virtual environment exists" || echo "$(YELLOW)⚠$(NC) Python virtual environment NOT created - run 'make setup-backend'"
+	@[ -d $(FRONTEND_DIR)/node_modules ] && echo "$(GREEN)✓$(NC) Node modules installed" || echo "$(YELLOW)⚠$(NC) Node modules NOT installed - run 'make setup-frontend'"
+	@[ -f $(BACKEND_DIR)/.env ] && echo "$(GREEN)✓$(NC) Environment file (.env) exists" || echo "$(YELLOW)⚠$(NC) Environment file (.env) NOT found - run 'make setup-env'"
+	@echo ""
+	@echo "$(YELLOW)Checking API Key...$(NC)"
+	@echo "─────────────────────────────────────────"
+	@if [ -f $(BACKEND_DIR)/.env ]; then \
+		if grep -q "your_groq_api_key_here" $(BACKEND_DIR)/.env 2>/dev/null; then \
+			echo "$(YELLOW)⚠$(NC) Groq API key not configured - update $(BACKEND_DIR)/.env"; \
+		else \
+			echo "$(GREEN)✓$(NC) Groq API key appears to be set"; \
+		fi \
+	fi
+	@echo ""
+	@echo "$(GREEN)========================================$(NC)"
+	@echo "$(GREEN)Verification Complete$(NC)"
+	@echo "$(GREEN)========================================$(NC)"
+
+run:
+	@echo "$(GREEN)========================================$(NC)"
+	@echo "$(GREEN)Author AI IDE - Running Application$(NC)"
+	@echo "$(GREEN)========================================$(NC)"
+	@echo ""
+	@if [ ! -f $(BACKEND_DIR)/.env ]; then \
+		echo "$(RED)Error: $(BACKEND_DIR)/.env file not found!$(NC)"; \
+		echo "Please run: make setup-env"; \
+		exit 1; \
+	fi
+	@if grep -q "your_groq_api_key_here" $(BACKEND_DIR)/.env 2>/dev/null; then \
+		echo "$(YELLOW)⚠ WARNING: Groq API key not set!$(NC)"; \
+		echo "Please set your Groq API key in $(BACKEND_DIR)/.env"; \
+		exit 1; \
+	fi
+	@if [ ! -d $(VENV) ]; then \
+		echo "$(RED)Error: Virtual environment not found!$(NC)"; \
+		echo "Please run: make setup-backend"; \
+		exit 1; \
+	fi
+	@echo "Starting application..."
+	@echo ""
+	@echo "$(YELLOW)Backend:$(NC)  http://localhost:8000"
+	@echo "$(YELLOW)Frontend:$(NC) http://localhost:5173"
+	@echo "$(YELLOW)API Docs:$(NC) http://localhost:8000/docs"
+	@echo ""
+	@echo "Press Ctrl+C to stop"
+	@echo "$(GREEN)========================================$(NC)"
+	@trap 'kill %1 %2 2>/dev/null; exit 0' INT TERM; \
+	cd $(BACKEND_DIR) && $(VENV)/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 & \
+	cd $(FRONTEND_DIR) && npm run dev & \
+	wait
+
+dev:
+	@echo "$(GREEN)========================================$(NC)"
+	@echo "$(GREEN)Author AI IDE - Development Mode$(NC)"
+	@echo "$(GREEN)========================================$(NC)"
+	@echo ""
+	@if [ ! -d $(VENV) ]; then \
+		echo "$(RED)Error: Virtual environment not found!$(NC)"; \
+		echo "Please run: make setup-backend"; \
+		exit 1; \
+	fi
+	@echo "Starting development servers with hot reload..."
+	@echo ""
+	@echo "$(YELLOW)Backend:$(NC)  http://localhost:8000"
+	@echo "$(YELLOW)Frontend:$(NC) http://localhost:5173"
+	@echo "$(YELLOW)API Docs:$(NC) http://localhost:8000/docs"
+	@echo ""
+	@echo "Press Ctrl+C to stop"
+	@echo "$(GREEN)========================================$(NC)"
+	@trap 'kill %1 %2 2>/dev/null; exit 0' INT TERM; \
+	cd $(BACKEND_DIR) && $(VENV)/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload & \
+	cd $(FRONTEND_DIR) && npm run dev & \
+	wait
 
 #------------------------------------------------------------------------------
 # FULL SETUP (Fresh VPS)
