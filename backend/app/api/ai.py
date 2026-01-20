@@ -21,7 +21,7 @@ from ..constants import (
     DEFAULT_IMPROVEMENT_INSTRUCTION
 )
 
-router = APIRouter(prefix="/api/ai", tags=["ai"])
+router = APIRouter(prefix="/ai", tags=["ai"])
 
 
 class ContinuationRequest(BaseModel):

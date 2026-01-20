@@ -130,6 +130,10 @@ export default function useProjects(isAuthenticated) {
   const updateChapterContent = useCallback((content) => {
     if (!activeProject || !activeChapter) return;
 
+    // Capture current IDs to avoid stale closure issues
+    const projectId = activeProject.id;
+    const chapterId = activeChapter.id;
+
     // Clear existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -138,7 +142,7 @@ export default function useProjects(isAuthenticated) {
     // Debounce save (1 second)
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        await chaptersAPI.update(activeProject.id, activeChapter.id, { content });
+        await chaptersAPI.update(projectId, chapterId, { content });
       } catch (error) {
         console.error('Error updating chapter:', error);
       }

@@ -24,7 +24,7 @@ from ..dependencies.auth import get_current_approved_user
 from ..utils.rate_limiter import limiter, RATE_LIMIT_DEFAULT
 from ..repositories import ProjectRepository, ChapterRepository
 
-router = APIRouter(prefix="/api/projects", tags=["projects"])
+router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 # Project Endpoints

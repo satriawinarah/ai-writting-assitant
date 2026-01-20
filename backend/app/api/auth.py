@@ -14,7 +14,7 @@ from ..services.auth_service import AuthService
 from ..dependencies.auth import get_current_approved_user
 from ..utils.rate_limiter import limiter, RATE_LIMIT_LOGIN, RATE_LIMIT_REGISTER, RATE_LIMIT_DEFAULT
 
-router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

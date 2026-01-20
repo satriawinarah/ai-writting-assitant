@@ -7,7 +7,7 @@ from slowapi.errors import RateLimitExceeded
 import os
 from pathlib import Path
 
-from .api import projects_router, ai_router, auth_router, settings_router
+from .api import v1_router
 from .database import engine, Base
 from .config import get_settings
 from .utils.rate_limiter import limiter
@@ -40,16 +40,21 @@ app.add_middleware(
 )
 
 # Include API routers
-app.include_router(auth_router)
-app.include_router(projects_router)
-app.include_router(ai_router)
-app.include_router(settings_router)
+app.include_router(v1_router)
 
 
-# Health check endpoint
+# Health check endpoint (unversioned for infrastructure probes)
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "version": "0.1.0"}
+
+
+# Legacy redirect support (optional - remove after frontend migration)
+# Uncomment if you need backward compatibility during migration
+# from fastapi.responses import RedirectResponse
+# @app.get("/api/{path:path}")
+# async def legacy_redirect(path: str):
+#     return RedirectResponse(url=f"/api/v1/{path}", status_code=307)
 
 
 # Serve static files (React build)

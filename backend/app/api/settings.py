@@ -15,7 +15,7 @@ from ..dependencies.auth import get_current_approved_user
 from ..services.llm import WRITING_STYLES, TITLE_STYLES
 from ..utils.rate_limiter import limiter, RATE_LIMIT_DEFAULT
 
-router = APIRouter(prefix="/api/settings", tags=["settings"])
+router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 @router.get("/default-prompts")
