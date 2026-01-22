@@ -84,12 +84,13 @@ class ProjectRepository:
             .all()
         )
 
-    def create(self, user_id: int, **data) -> Project:
+    def create(self, user_id: int, auto_commit: bool = True, **data) -> Project:
         """
         Create a new project.
 
         Args:
             user_id: The user ID
+            auto_commit: Whether to commit immediately (default: True)
             **data: Project data (title, description, etc.)
 
         Returns:
@@ -97,16 +98,20 @@ class ProjectRepository:
         """
         project = Project(user_id=user_id, **data)
         self.db.add(project)
-        self.db.commit()
-        self.db.refresh(project)
+        if auto_commit:
+            self.db.commit()
+            self.db.refresh(project)
+        else:
+            self.db.flush()  # Get ID without committing
         return project
 
-    def update(self, project: Project, **data) -> Project:
+    def update(self, project: Project, auto_commit: bool = True, **data) -> Project:
         """
         Update a project.
 
         Args:
             project: The project to update
+            auto_commit: Whether to commit immediately (default: True)
             **data: Fields to update
 
         Returns:
@@ -114,16 +119,21 @@ class ProjectRepository:
         """
         for key, value in data.items():
             setattr(project, key, value)
-        self.db.commit()
-        self.db.refresh(project)
+        if auto_commit:
+            self.db.commit()
+            self.db.refresh(project)
+        else:
+            self.db.flush()
         return project
 
-    def delete(self, project: Project) -> None:
+    def delete(self, project: Project, auto_commit: bool = True) -> None:
         """
         Delete a project.
 
         Args:
             project: The project to delete
+            auto_commit: Whether to commit immediately (default: True)
         """
         self.db.delete(project)
-        self.db.commit()
+        if auto_commit:
+            self.db.commit()

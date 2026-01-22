@@ -16,6 +16,7 @@ import Register from './components/Register';
 import LandingPage from './components/LandingPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import EditorErrorBoundary from './components/EditorErrorBoundary';
+import NotificationContainer from './components/NotificationContainer';
 import { useAuth, useProjects } from './hooks';
 
 export default function App() {
@@ -109,6 +110,8 @@ export default function App() {
 
   return (
     <div className="app">
+      <NotificationContainer />
+
       <ErrorBoundary>
         <Sidebar
           projects={projectManager.projects}

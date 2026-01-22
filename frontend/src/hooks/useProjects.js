@@ -7,12 +7,16 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { projectsAPI, chaptersAPI } from '../services/api';
+import useErrorHandler from './useErrorHandler';
+import { useNotifications } from '../contexts/NotificationContext';
 
 export default function useProjects(isAuthenticated) {
   const [projects, setProjects] = useState([]);
   const [activeProject, setActiveProject] = useState(null);
   const [activeChapter, setActiveChapter] = useState(null);
   const saveTimeoutRef = useRef(null);
+  const { handleError } = useErrorHandler();
+  const { showSuccess } = useNotifications();
 
   // Load projects when authenticated
   useEffect(() => {
@@ -32,6 +36,7 @@ export default function useProjects(isAuthenticated) {
       setProjects(response.data);
     } catch (error) {
       console.error('Error loading projects:', error);
+      handleError(error, 'Failed to load projects');
     }
   };
 
@@ -48,8 +53,9 @@ export default function useProjects(isAuthenticated) {
       }
     } catch (error) {
       console.error('Error loading project:', error);
+      handleError(error, 'Failed to load project');
     }
-  }, []);
+  }, [handleError]);
 
   const createProject = useCallback(async (data) => {
     try {
@@ -66,12 +72,14 @@ export default function useProjects(isAuthenticated) {
       await loadProject(response.data);
       setActiveChapter(chapterResponse.data);
 
+      showSuccess('Project created successfully');
       return response.data;
     } catch (error) {
       console.error('Error creating project:', error);
+      handleError(error, 'Failed to create project');
       throw error;
     }
-  }, [loadProject]);
+  }, [loadProject, handleError, showSuccess]);
 
   const deleteProject = useCallback(async (projectId) => {
     try {
@@ -82,11 +90,14 @@ export default function useProjects(isAuthenticated) {
         setActiveProject(null);
         setActiveChapter(null);
       }
+
+      showSuccess('Project deleted successfully');
     } catch (error) {
       console.error('Error deleting project:', error);
+      handleError(error, 'Failed to delete project');
       throw error;
     }
-  }, [activeProject]);
+  }, [activeProject, handleError, showSuccess]);
 
   const renameProject = useCallback(async (projectId, newTitle) => {
     try {
@@ -96,11 +107,14 @@ export default function useProjects(isAuthenticated) {
       if (activeProject?.id === projectId) {
         await loadProject(activeProject);
       }
+
+      showSuccess('Project renamed successfully');
     } catch (error) {
       console.error('Error renaming project:', error);
+      handleError(error, 'Failed to rename project');
       throw error;
     }
-  }, [activeProject, loadProject]);
+  }, [activeProject, loadProject, handleError, showSuccess]);
 
   const createChapter = useCallback(async (data) => {
     if (!activeProject) return;
@@ -116,12 +130,14 @@ export default function useProjects(isAuthenticated) {
       setActiveProject(projectResponse.data);
       setActiveChapter(newChapter);
 
+      showSuccess('Chapter created successfully');
       return newChapter;
     } catch (error) {
       console.error('Error creating chapter:', error);
+      handleError(error, 'Failed to create chapter');
       throw error;
     }
-  }, [activeProject]);
+  }, [activeProject, handleError, showSuccess]);
 
   const selectChapter = useCallback((chapter) => {
     setActiveChapter(chapter);
@@ -143,11 +159,13 @@ export default function useProjects(isAuthenticated) {
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         await chaptersAPI.update(projectId, chapterId, { content });
+        // Silent success - no notification for auto-save
       } catch (error) {
         console.error('Error updating chapter:', error);
+        handleError(error, 'Failed to save chapter content');
       }
     }, 1000);
-  }, [activeProject, activeChapter]);
+  }, [activeProject, activeChapter, handleError]);
 
   const deleteChapter = useCallback(async (chapterId) => {
     if (!activeProject) return;
@@ -165,11 +183,14 @@ export default function useProjects(isAuthenticated) {
           setActiveChapter(null);
         }
       }
+
+      showSuccess('Chapter deleted successfully');
     } catch (error) {
       console.error('Error deleting chapter:', error);
+      handleError(error, 'Failed to delete chapter');
       throw error;
     }
-  }, [activeProject, activeChapter, loadProject]);
+  }, [activeProject, activeChapter, loadProject, handleError, showSuccess]);
 
   const renameChapter = useCallback(async (chapterId, newTitle) => {
     if (!activeProject) return;
@@ -177,11 +198,14 @@ export default function useProjects(isAuthenticated) {
     try {
       await chaptersAPI.update(activeProject.id, chapterId, { title: newTitle });
       await loadProject(activeProject);
+
+      showSuccess('Chapter renamed successfully');
     } catch (error) {
       console.error('Error renaming chapter:', error);
+      handleError(error, 'Failed to rename chapter');
       throw error;
     }
-  }, [activeProject, loadProject]);
+  }, [activeProject, loadProject, handleError, showSuccess]);
 
   return {
     // State

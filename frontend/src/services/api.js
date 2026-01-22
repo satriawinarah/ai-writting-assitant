@@ -1,11 +1,52 @@
 import axios from 'axios';
 
+// Exponential backoff configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+const MAX_RETRY_DELAY = 10000; // 10 seconds
+const TIMEOUT = 30000; // 30 seconds
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  timeout: TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+/**
+ * Calculate exponential backoff delay with jitter
+ */
+function getRetryDelay(retryCount) {
+  const exponentialDelay = Math.min(
+    INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
+    MAX_RETRY_DELAY
+  );
+  // Add jitter (±25%) to prevent thundering herd
+  const jitter = exponentialDelay * 0.25 * (Math.random() * 2 - 1);
+  return exponentialDelay + jitter;
+}
+
+/**
+ * Check if error is retryable
+ */
+function isRetryableError(error) {
+  if (!error.response) {
+    // Network errors are retryable
+    return true;
+  }
+
+  const status = error.response.status;
+  // Retry on 5xx server errors and 429 rate limit
+  return status >= 500 || status === 429;
+}
+
+/**
+ * Sleep for specified milliseconds
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
@@ -13,19 +54,45 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Initialize retry count
+  config.retryCount = config.retryCount || 0;
   return config;
 });
 
-// Handle auth errors
+// Handle retries and auth errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
+
+    // Handle 401 auth errors (no retry)
     if (error.response?.status === 401) {
-      // Token expired or invalid, redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+      return Promise.reject(error);
     }
+
+    // Check if we should retry
+    if (config && isRetryableError(error) && config.retryCount < MAX_RETRIES) {
+      config.retryCount += 1;
+
+      // Calculate delay with exponential backoff
+      const delay = getRetryDelay(config.retryCount - 1);
+
+      // Log retry attempt
+      console.log(
+        `Retry attempt ${config.retryCount}/${MAX_RETRIES} after ${Math.round(delay)}ms for ${config.url}`
+      );
+
+      // Wait before retrying
+      await sleep(delay);
+
+      // Retry the request
+      return api(config);
+    }
+
+    // No more retries or non-retryable error
     return Promise.reject(error);
   }
 );

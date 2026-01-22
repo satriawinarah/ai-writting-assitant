@@ -6,12 +6,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../services/api';
+import useErrorHandler from './useErrorHandler';
+import { useNotifications } from '../contexts/NotificationContext';
 
 export default function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLanding, setShowLanding] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
+  const { handleError } = useErrorHandler();
+  const { showSuccess } = useNotifications();
 
   // Check authentication on mount
   useEffect(() => {
@@ -39,28 +43,42 @@ export default function useAuth() {
   };
 
   const login = useCallback(async (credentials) => {
-    const response = await authAPI.login(credentials);
-    localStorage.setItem('token', response.data.access_token);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
-    setUser(response.data.user);
-  }, []);
+    try {
+      const response = await authAPI.login(credentials);
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setUser(response.data.user);
+      showSuccess('Login successful');
+    } catch (error) {
+      handleError(error, 'Login failed');
+      throw error;
+    }
+  }, [handleError, showSuccess]);
 
   const register = useCallback(async (userData) => {
-    await authAPI.register(userData);
-  }, []);
+    try {
+      await authAPI.register(userData);
+      showSuccess('Registration successful! Please wait for admin approval to login.');
+    } catch (error) {
+      handleError(error, 'Registration failed');
+      throw error;
+    }
+  }, [handleError, showSuccess]);
 
   const logout = useCallback(async () => {
     try {
       await authAPI.logout();
+      showSuccess('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
+      // Don't show error for logout failures, still log user out locally
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setUser(null);
       setShowLanding(true);
     }
-  }, []);
+  }, [showSuccess]);
 
   const goToLogin = useCallback(() => {
     setShowLanding(false);

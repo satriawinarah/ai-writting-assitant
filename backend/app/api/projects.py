@@ -22,6 +22,7 @@ from ..schemas import (
 )
 from ..dependencies.auth import get_current_approved_user
 from ..utils.rate_limiter import limiter, RATE_LIMIT_DEFAULT
+from ..utils.db_transactions import transaction
 from ..repositories import ProjectRepository, ChapterRepository
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -89,9 +90,10 @@ def update_project(
     db: Session = Depends(get_db)
 ):
     """Update a project (only if it belongs to current user)."""
-    repo = ProjectRepository(db)
-    db_project = repo.get_or_404(project_id, current_user.id)
-    return repo.update(db_project, **project.model_dump(exclude_unset=True))
+    with transaction(db):
+        repo = ProjectRepository(db)
+        db_project = repo.get_or_404(project_id, current_user.id)
+        return repo.update(db_project, auto_commit=False, **project.model_dump(exclude_unset=True))
 
 
 @router.delete("/{project_id}")
@@ -103,9 +105,10 @@ def delete_project(
     db: Session = Depends(get_db)
 ):
     """Delete a project (only if it belongs to current user)."""
-    repo = ProjectRepository(db)
-    db_project = repo.get_or_404(project_id, current_user.id)
-    repo.delete(db_project)
+    with transaction(db):
+        repo = ProjectRepository(db)
+        db_project = repo.get_or_404(project_id, current_user.id)
+        repo.delete(db_project, auto_commit=False)
     return {"message": "Project deleted successfully"}
 
 
@@ -121,11 +124,12 @@ def create_chapter(
     db: Session = Depends(get_db)
 ):
     """Create a new chapter in a project (only if project belongs to current user)."""
-    project_repo = ProjectRepository(db)
-    project_repo.get_or_404(project_id, current_user.id)
+    with transaction(db):
+        project_repo = ProjectRepository(db)
+        project_repo.get_or_404(project_id, current_user.id)
 
-    chapter_repo = ChapterRepository(db)
-    return chapter_repo.create(project_id, **chapter.model_dump())
+        chapter_repo = ChapterRepository(db)
+        return chapter_repo.create(project_id, auto_commit=False, **chapter.model_dump())
 
 
 @router.get("/{project_id}/chapters/{chapter_id}", response_model=ChapterSchema)
@@ -153,9 +157,10 @@ def update_chapter(
     db: Session = Depends(get_db)
 ):
     """Update a chapter (only if project belongs to current user)."""
-    repo = ChapterRepository(db)
-    db_chapter = repo.get_or_404(chapter_id, project_id, current_user.id)
-    return repo.update(db_chapter, **chapter.model_dump(exclude_unset=True))
+    with transaction(db):
+        repo = ChapterRepository(db)
+        db_chapter = repo.get_or_404(chapter_id, project_id, current_user.id)
+        return repo.update(db_chapter, auto_commit=False, **chapter.model_dump(exclude_unset=True))
 
 
 @router.delete("/{project_id}/chapters/{chapter_id}")
@@ -168,7 +173,8 @@ def delete_chapter(
     db: Session = Depends(get_db)
 ):
     """Delete a chapter (only if project belongs to current user)."""
-    repo = ChapterRepository(db)
-    db_chapter = repo.get_or_404(chapter_id, project_id, current_user.id)
-    repo.delete(db_chapter)
+    with transaction(db):
+        repo = ChapterRepository(db)
+        db_chapter = repo.get_or_404(chapter_id, project_id, current_user.id)
+        repo.delete(db_chapter, auto_commit=False)
     return {"message": "Chapter deleted successfully"}

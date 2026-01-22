@@ -65,12 +65,13 @@ class ChapterRepository:
             raise HTTPException(status_code=404, detail="Chapter not found")
         return chapter
 
-    def create(self, project_id: int, **data) -> Chapter:
+    def create(self, project_id: int, auto_commit: bool = True, **data) -> Chapter:
         """
         Create a new chapter.
 
         Args:
             project_id: The project ID
+            auto_commit: Whether to commit immediately (default: True)
             **data: Chapter data (title, content, order, etc.)
 
         Returns:
@@ -78,16 +79,20 @@ class ChapterRepository:
         """
         chapter = Chapter(project_id=project_id, **data)
         self.db.add(chapter)
-        self.db.commit()
-        self.db.refresh(chapter)
+        if auto_commit:
+            self.db.commit()
+            self.db.refresh(chapter)
+        else:
+            self.db.flush()  # Get ID without committing
         return chapter
 
-    def update(self, chapter: Chapter, **data) -> Chapter:
+    def update(self, chapter: Chapter, auto_commit: bool = True, **data) -> Chapter:
         """
         Update a chapter.
 
         Args:
             chapter: The chapter to update
+            auto_commit: Whether to commit immediately (default: True)
             **data: Fields to update
 
         Returns:
@@ -95,16 +100,21 @@ class ChapterRepository:
         """
         for key, value in data.items():
             setattr(chapter, key, value)
-        self.db.commit()
-        self.db.refresh(chapter)
+        if auto_commit:
+            self.db.commit()
+            self.db.refresh(chapter)
+        else:
+            self.db.flush()
         return chapter
 
-    def delete(self, chapter: Chapter) -> None:
+    def delete(self, chapter: Chapter, auto_commit: bool = True) -> None:
         """
         Delete a chapter.
 
         Args:
             chapter: The chapter to delete
+            auto_commit: Whether to commit immediately (default: True)
         """
         self.db.delete(chapter)
-        self.db.commit()
+        if auto_commit:
+            self.db.commit()

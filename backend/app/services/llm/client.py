@@ -23,7 +23,7 @@ class LLMClientFactory:
             model: The model identifier
 
         Returns:
-            A configured Groq client instance
+            A configured Groq client instance with 30s timeout
 
         Raises:
             ValueError: If no API key is configured for the model
@@ -35,7 +35,8 @@ class LLMClientFactory:
 
         # For now, we use Groq client for all models
         # OpenRouter uses OpenAI-compatible API, so Groq client works
-        return Groq(api_key=api_key)
+        # Configure 30s timeout to prevent hanging requests
+        return Groq(api_key=api_key, timeout=30.0)
 
     def is_model_available(self, model: str) -> bool:
         """
