@@ -1,4 +1,11 @@
+/**
+ * ChapterModal - Modal for creating/editing chapters.
+ *
+ * Uses the generic Modal component for consistent structure.
+ */
+
 import { useState, useEffect } from 'react';
+import Modal, { ModalForm, ModalField, ModalActions } from './Modal';
 
 export default function ChapterModal({ isOpen, onClose, onSubmit, chapter = null }) {
   const [title, setTitle] = useState('');
@@ -11,42 +18,39 @@ export default function ChapterModal({ isOpen, onClose, onSubmit, chapter = null
     }
   }, [chapter, isOpen]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     onSubmit({ title });
     setTitle('');
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{chapter ? 'Edit Chapter' : 'New Chapter'}</h2>
-        <form className="modal-form" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="title">Title *</label>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter chapter title"
-              required
-              autoFocus
-            />
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={chapter ? 'Edit Chapter' : 'New Chapter'}
+    >
+      <ModalForm onSubmit={handleSubmit}>
+        <ModalField label="Title" htmlFor="chapter-title" required>
+          <input
+            id="chapter-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter chapter title"
+            required
+            autoFocus
+          />
+        </ModalField>
 
-          <div className="modal-actions">
-            <button type="button" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="primary">
-              {chapter ? 'Update' : 'Create'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <ModalActions>
+          <button type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="primary">
+            {chapter ? 'Update' : 'Create'}
+          </button>
+        </ModalActions>
+      </ModalForm>
+    </Modal>
   );
 }

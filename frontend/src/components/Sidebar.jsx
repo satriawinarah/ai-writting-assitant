@@ -43,7 +43,7 @@ export default function Sidebar({
       </div>
 
       <div className="sidebar-content">
-        <h3 style={{ fontSize: '12px', color: '#b0b0b0', marginBottom: '10px', textTransform: 'uppercase' }}>
+        <h3 className="sidebar-section-title">
           Projects
         </h3>
         <ProjectTree

@@ -1,20 +1,20 @@
 /**
- * Custom hook for project and chapter management.
+ * Project Context for centralized project and chapter state management.
  *
- * Handles CRUD operations for projects and chapters,
- * including debounced content saving with loading/error state exposure.
+ * This context eliminates prop drilling by providing project/chapter
+ * state and actions to any component in the tree.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { projectsAPI, chaptersAPI } from '../services/api';
-import useErrorHandler from './useErrorHandler';
-import { useNotifications } from '../contexts/NotificationContext';
+import { useNotifications } from './NotificationContext';
+import useErrorHandler from '../hooks/useErrorHandler';
+
+const ProjectContext = createContext();
 
 const SAVE_DEBOUNCE_MS = 1000;
-const DEFAULT_CHAPTER_TITLE = 'Chapter 1';
-const DEFAULT_CHAPTER_ORDER = 0;
 
-export default function useProjects(isAuthenticated) {
+export function ProjectProvider({ children, isAuthenticated }) {
   const [projects, setProjects] = useState([]);
   const [activeProject, setActiveProject] = useState(null);
   const [activeChapter, setActiveChapter] = useState(null);
@@ -52,10 +52,9 @@ export default function useProjects(isAuthenticated) {
       const response = await projectsAPI.list();
       setProjects(response.data);
     } catch (err) {
-      const errorMessage = 'Failed to load projects';
       console.error('Error loading projects:', err);
-      setError(errorMessage);
-      handleError(err, errorMessage);
+      setError('Failed to load projects');
+      handleError(err, 'Failed to load projects');
     } finally {
       setLoading(false);
     }
@@ -74,10 +73,9 @@ export default function useProjects(isAuthenticated) {
         setActiveChapter(null);
       }
     } catch (err) {
-      const errorMessage = 'Failed to load project';
       console.error('Error loading project:', err);
-      setError(errorMessage);
-      handleError(err, errorMessage);
+      setError('Failed to load project');
+      handleError(err, 'Failed to load project');
     } finally {
       setLoading(false);
     }
@@ -91,9 +89,9 @@ export default function useProjects(isAuthenticated) {
       await loadProjects();
 
       const chapterResponse = await chaptersAPI.create(response.data.id, {
-        title: DEFAULT_CHAPTER_TITLE,
+        title: 'Chapter 1',
         content: '',
-        order: DEFAULT_CHAPTER_ORDER,
+        order: 0,
       });
 
       await loadProject(response.data);
@@ -102,10 +100,9 @@ export default function useProjects(isAuthenticated) {
       showSuccess('Project created successfully');
       return response.data;
     } catch (err) {
-      const errorMessage = 'Failed to create project';
       console.error('Error creating project:', err);
-      setError(errorMessage);
-      handleError(err, errorMessage);
+      setError('Failed to create project');
+      handleError(err, 'Failed to create project');
       throw err;
     } finally {
       setLoading(false);
@@ -113,8 +110,6 @@ export default function useProjects(isAuthenticated) {
   }, [loadProject, handleError, showSuccess]);
 
   const deleteProject = useCallback(async (projectId) => {
-    setLoading(true);
-    setError(null);
     try {
       await projectsAPI.delete(projectId);
       await loadProjects();
@@ -126,19 +121,13 @@ export default function useProjects(isAuthenticated) {
 
       showSuccess('Project deleted successfully');
     } catch (err) {
-      const errorMessage = 'Failed to delete project';
       console.error('Error deleting project:', err);
-      setError(errorMessage);
-      handleError(err, errorMessage);
+      handleError(err, 'Failed to delete project');
       throw err;
-    } finally {
-      setLoading(false);
     }
   }, [activeProject, handleError, showSuccess]);
 
   const renameProject = useCallback(async (projectId, newTitle) => {
-    setLoading(true);
-    setError(null);
     try {
       await projectsAPI.update(projectId, { title: newTitle });
       await loadProjects();
@@ -149,21 +138,15 @@ export default function useProjects(isAuthenticated) {
 
       showSuccess('Project renamed successfully');
     } catch (err) {
-      const errorMessage = 'Failed to rename project';
       console.error('Error renaming project:', err);
-      setError(errorMessage);
-      handleError(err, errorMessage);
+      handleError(err, 'Failed to rename project');
       throw err;
-    } finally {
-      setLoading(false);
     }
   }, [activeProject, loadProject, handleError, showSuccess]);
 
   const createChapter = useCallback(async (data) => {
     if (!activeProject) return;
 
-    setLoading(true);
-    setError(null);
     try {
       const response = await chaptersAPI.create(activeProject.id, {
         ...data,
@@ -178,13 +161,9 @@ export default function useProjects(isAuthenticated) {
       showSuccess('Chapter created successfully');
       return newChapter;
     } catch (err) {
-      const errorMessage = 'Failed to create chapter';
       console.error('Error creating chapter:', err);
-      setError(errorMessage);
-      handleError(err, errorMessage);
+      handleError(err, 'Failed to create chapter');
       throw err;
-    } finally {
-      setLoading(false);
     }
   }, [activeProject, handleError, showSuccess]);
 
@@ -215,8 +194,6 @@ export default function useProjects(isAuthenticated) {
   const deleteChapter = useCallback(async (chapterId) => {
     if (!activeProject) return;
 
-    setLoading(true);
-    setError(null);
     try {
       await chaptersAPI.delete(activeProject.id, chapterId);
       await loadProject(activeProject);
@@ -232,42 +209,28 @@ export default function useProjects(isAuthenticated) {
 
       showSuccess('Chapter deleted successfully');
     } catch (err) {
-      const errorMessage = 'Failed to delete chapter';
       console.error('Error deleting chapter:', err);
-      setError(errorMessage);
-      handleError(err, errorMessage);
+      handleError(err, 'Failed to delete chapter');
       throw err;
-    } finally {
-      setLoading(false);
     }
   }, [activeProject, activeChapter, loadProject, handleError, showSuccess]);
 
   const renameChapter = useCallback(async (chapterId, newTitle) => {
     if (!activeProject) return;
 
-    setLoading(true);
-    setError(null);
     try {
       await chaptersAPI.update(activeProject.id, chapterId, { title: newTitle });
       await loadProject(activeProject);
 
       showSuccess('Chapter renamed successfully');
     } catch (err) {
-      const errorMessage = 'Failed to rename chapter';
       console.error('Error renaming chapter:', err);
-      setError(errorMessage);
-      handleError(err, errorMessage);
+      handleError(err, 'Failed to rename chapter');
       throw err;
-    } finally {
-      setLoading(false);
     }
   }, [activeProject, loadProject, handleError, showSuccess]);
 
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  return {
+  const value = {
     // State
     projects,
     activeProject,
@@ -287,8 +250,19 @@ export default function useProjects(isAuthenticated) {
     updateChapterContent,
     deleteChapter,
     renameChapter,
-
-    // Utility
-    clearError,
   };
+
+  return (
+    <ProjectContext.Provider value={value}>
+      {children}
+    </ProjectContext.Provider>
+  );
+}
+
+export function useProject() {
+  const context = useContext(ProjectContext);
+  if (!context) {
+    throw new Error('useProject must be used within ProjectProvider');
+  }
+  return context;
 }

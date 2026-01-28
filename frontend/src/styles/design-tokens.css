@@ -1,0 +1,184 @@
+/**
+ * Design Tokens - Centralized CSS Variables
+ *
+ * This file defines all design tokens used throughout the application
+ * for consistent theming and easy maintenance.
+ */
+
+:root {
+  /* ==========================================
+     Color Palette
+     ========================================== */
+
+  /* Primary Colors */
+  --color-primary: #007acc;
+  --color-primary-hover: #005a9e;
+  --color-primary-light: rgba(0, 122, 204, 0.2);
+
+  /* Secondary Colors */
+  --color-secondary: #4a90e2;
+  --color-secondary-hover: #3a7bc8;
+
+  /* Accent Colors */
+  --color-accent: #6c63ff;
+  --color-accent-hover: #5a52d5;
+
+  /* Success Colors */
+  --color-success: #28a745;
+  --color-success-hover: #218838;
+  --color-success-bg: #d4edda;
+  --color-success-bg-light: #f0fff4;
+  --color-success-border: #c3e6cb;
+  --color-success-text: #155724;
+
+  /* Warning Colors */
+  --color-warning: #ffc107;
+  --color-warning-hover: #ffb300;
+  --color-warning-bg: #fff8e1;
+  --color-warning-bg-light: #fff3cd;
+  --color-warning-text: #856404;
+
+  /* Error/Danger Colors */
+  --color-error: #dc3545;
+  --color-error-hover: #c82333;
+  --color-error-bg: #ffe0e0;
+  --color-error-bg-light: #fff5f5;
+  --color-error-border: #ff6b6b;
+  --color-error-text: #d32f2f;
+
+  /* Neutral Colors - Light Theme */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f5f5f5;
+  --color-bg-tertiary: #fafafa;
+  --color-bg-hover: #f0f0f0;
+
+  /* Neutral Colors - Dark Theme (Sidebar) */
+  --color-sidebar-bg: #2c2c2c;
+  --color-sidebar-bg-hover: #3c3c3c;
+  --color-sidebar-bg-active: #4c4c4c;
+  --color-sidebar-border: #1a1a1a;
+  --color-sidebar-border-light: #3c3c3c;
+
+  /* Text Colors */
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #4a4a4a;
+  --color-text-tertiary: #666666;
+  --color-text-muted: #888888;
+  --color-text-light: #b0b0b0;
+  --color-text-white: #ffffff;
+
+  /* Border Colors */
+  --color-border: #e0e0e0;
+  --color-border-light: #d0d0d0;
+  --color-border-dark: #4a4a4a;
+
+  /* ==========================================
+     Typography
+     ========================================== */
+
+  /* Font Families */
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-family-mono: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+
+  /* Font Sizes */
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 24px;
+  --font-size-4xl: 32px;
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.4;
+  --line-height-relaxed: 1.6;
+  --line-height-loose: 1.8;
+
+  /* ==========================================
+     Spacing
+     ========================================== */
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 30px;
+  --spacing-3xl: 40px;
+
+  /* ==========================================
+     Layout
+     ========================================== */
+
+  --sidebar-width: 300px;
+  --suggestion-sidebar-width: 350px;
+  --footer-height: 60px;
+  --user-bar-height: 48px;
+
+  /* ==========================================
+     Borders & Radius
+     ========================================== */
+
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
+  --border-radius-xl: 10px;
+  --border-radius-pill: 12px;
+  --border-radius-full: 9999px;
+
+  --border-width-thin: 1px;
+  --border-width-thick: 2px;
+  --border-width-heavy: 3px;
+
+  /* ==========================================
+     Shadows
+     ========================================== */
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --shadow-footer: 0 -2px 10px rgba(0, 0, 0, 0.1);
+
+  /* ==========================================
+     Transitions
+     ========================================== */
+
+  --transition-fast: 0.15s ease-out;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* ==========================================
+     Z-Index Scale
+     ========================================== */
+
+  --z-index-dropdown: 100;
+  --z-index-sticky: 200;
+  --z-index-modal-backdrop: 1000;
+  --z-index-modal: 1001;
+  --z-index-tooltip: 10000;
+
+  /* ==========================================
+     Component-Specific Tokens
+     ========================================== */
+
+  /* Buttons */
+  --btn-padding-sm: 6px 12px;
+  --btn-padding-md: 8px 16px;
+  --btn-padding-lg: 10px 20px;
+
+  /* Inputs */
+  --input-padding: 8px 12px;
+  --input-padding-lg: 10px;
+
+  /* Badges */
+  --badge-padding: 3px 10px;
+}

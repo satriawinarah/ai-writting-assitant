@@ -1127,3 +1127,93 @@ code {
 .review-tooltip-actions .dismiss-btn:hover {
   background-color: #dee2e6;
 }
+
+/* ==========================================
+   Error Boundary Styles
+   ========================================== */
+
+.error-boundary-container {
+  padding: var(--spacing-xl, 20px);
+  margin: var(--spacing-xl, 20px);
+  border: 1px solid var(--color-error-border, #ff6b6b);
+  border-radius: var(--border-radius-lg, 8px);
+  background-color: var(--color-error-bg, #ffe0e0);
+}
+
+.error-boundary-title {
+  color: var(--color-error-text, #d32f2f);
+  margin-top: 0;
+  font-size: var(--font-size-2xl, 20px);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.error-boundary-message {
+  color: var(--color-text-tertiary, #666);
+  font-size: var(--font-size-md, 14px);
+}
+
+.error-boundary-details {
+  margin-top: var(--spacing-md, 12px);
+}
+
+.error-boundary-summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold, 600);
+  font-size: var(--font-size-md, 14px);
+}
+
+.error-boundary-stack {
+  margin-top: var(--spacing-md, 12px);
+  padding: var(--spacing-md, 12px);
+  background-color: var(--color-bg-secondary, #f5f5f5);
+  border-radius: var(--border-radius-sm, 4px);
+  overflow: auto;
+  font-size: var(--font-size-sm, 12px);
+  font-family: var(--font-family-mono);
+}
+
+.error-boundary-button {
+  margin-top: var(--spacing-lg, 16px);
+  padding: var(--btn-padding-md, 8px 16px);
+  background-color: var(--color-error-text, #d32f2f);
+  color: var(--color-text-white, white);
+  border: none;
+  border-radius: var(--border-radius-sm, 4px);
+  cursor: pointer;
+  font-size: var(--font-size-md, 14px);
+  font-weight: var(--font-weight-medium, 500);
+  transition: background-color var(--transition-normal, 0.2s);
+}
+
+.error-boundary-button:hover {
+  background-color: var(--color-error-hover, #c82333);
+}
+
+/* ==========================================
+   Sidebar Additional Styles
+   ========================================== */
+
+.sidebar-section-title {
+  font-size: var(--font-size-sm, 12px);
+  color: var(--color-text-light, #b0b0b0);
+  margin-bottom: var(--spacing-md, 10px);
+  text-transform: uppercase;
+  font-weight: var(--font-weight-medium, 500);
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================
+   Modal Field Styles
+   ========================================== */
+
+.modal-field {
+  margin-bottom: var(--spacing-lg, 16px);
+}
+
+.modal-field label {
+  display: block;
+  font-size: var(--font-size-md, 14px);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-text-primary, #2c2c2c);
+  margin-bottom: var(--spacing-sm, 8px);
+}

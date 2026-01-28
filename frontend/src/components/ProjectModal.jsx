@@ -1,4 +1,11 @@
+/**
+ * ProjectModal - Modal for creating/editing projects.
+ *
+ * Uses the generic Modal component for consistent structure.
+ */
+
 import { useState, useEffect } from 'react';
+import Modal, { ModalForm, ModalField, ModalActions } from './Modal';
 
 export default function ProjectModal({ isOpen, onClose, onSubmit, project = null }) {
   const [title, setTitle] = useState('');
@@ -14,53 +21,49 @@ export default function ProjectModal({ isOpen, onClose, onSubmit, project = null
     }
   }, [project, isOpen]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     onSubmit({ title, description });
     setTitle('');
     setDescription('');
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{project ? 'Edit Project' : 'New Project'}</h2>
-        <form className="modal-form" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="title">Title *</label>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter project title"
-              required
-              autoFocus
-            />
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={project ? 'Edit Project' : 'New Project'}
+    >
+      <ModalForm onSubmit={handleSubmit}>
+        <ModalField label="Title" htmlFor="project-title" required>
+          <input
+            id="project-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter project title"
+            required
+            autoFocus
+          />
+        </ModalField>
 
-          <div>
-            <label htmlFor="description">Description</label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter project description (optional)"
-            />
-          </div>
+        <ModalField label="Description" htmlFor="project-description">
+          <textarea
+            id="project-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Enter project description (optional)"
+          />
+        </ModalField>
 
-          <div className="modal-actions">
-            <button type="button" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="primary">
-              {project ? 'Update' : 'Create'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <ModalActions>
+          <button type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="primary">
+            {project ? 'Update' : 'Create'}
+          </button>
+        </ModalActions>
+      </ModalForm>
+    </Modal>
   );
 }
