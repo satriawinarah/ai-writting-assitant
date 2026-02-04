@@ -72,7 +72,28 @@ export default function useLiveReview() {
     if (!editor || !issue) return;
 
     const text = editor.getText();
-    const startOffset = text.indexOf(issue.original_text);
+    const searchText = issue.original_text;
+
+    // Find the specific occurrence based on issue index to avoid matching wrong instance
+    const issueIndex = issues.findIndex((i) => i === issue);
+    let startOffset = -1;
+
+    // Count occurrences of the same text before this issue to find the right one
+    const sameTextIssuesBefore = issues
+      .slice(0, issueIndex)
+      .filter((i) => i.original_text === searchText).length;
+
+    // Find the nth occurrence where n = sameTextIssuesBefore + 1
+    let searchStart = 0;
+    for (let i = 0; i <= sameTextIssuesBefore; i++) {
+      const foundIndex = text.indexOf(searchText, searchStart);
+      if (foundIndex === -1) {
+        setError('Tidak dapat menemukan teks yang akan diperbaiki.');
+        return;
+      }
+      startOffset = foundIndex;
+      searchStart = foundIndex + 1;
+    }
 
     if (startOffset === -1) {
       setError('Tidak dapat menemukan teks yang akan diperbaiki.');
@@ -92,8 +113,8 @@ export default function useLiveReview() {
         if (from === null && currentOffset + textLength > startOffset) {
           from = pos + (startOffset - currentOffset);
         }
-        if (from !== null && to === null && currentOffset + textLength >= startOffset + issue.original_text.length) {
-          to = pos + (startOffset + issue.original_text.length - currentOffset);
+        if (from !== null && to === null && currentOffset + textLength >= startOffset + searchText.length) {
+          to = pos + (startOffset + searchText.length - currentOffset);
         }
         currentOffset += textLength;
       }

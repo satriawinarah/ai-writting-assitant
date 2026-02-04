@@ -21,6 +21,8 @@ export default function useProjects(isAuthenticated) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const saveTimeoutRef = useRef(null);
+  const savingRef = useRef(false);
+  const pendingContentRef = useRef(null);
   const { handleError } = useErrorHandler();
   const { showSuccess } = useNotifications();
 
@@ -198,16 +200,38 @@ export default function useProjects(isAuthenticated) {
     const projectId = activeProject.id;
     const chapterId = activeChapter.id;
 
+    // Store pending content for race condition handling
+    pendingContentRef.current = { projectId, chapterId, content };
+
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
     saveTimeoutRef.current = setTimeout(async () => {
+      // Prevent concurrent saves
+      if (savingRef.current) {
+        // Re-queue the save if one is in progress
+        setTimeout(() => {
+          if (pendingContentRef.current) {
+            updateChapterContent(pendingContentRef.current.content);
+          }
+        }, SAVE_DEBOUNCE_MS);
+        return;
+      }
+
+      savingRef.current = true;
+      const pending = pendingContentRef.current;
+      pendingContentRef.current = null;
+
       try {
-        await chaptersAPI.update(projectId, chapterId, { content });
+        if (pending) {
+          await chaptersAPI.update(pending.projectId, pending.chapterId, { content: pending.content });
+        }
       } catch (err) {
         console.error('Error updating chapter:', err);
         handleError(err, 'Failed to save chapter content');
+      } finally {
+        savingRef.current = false;
       }
     }, SAVE_DEBOUNCE_MS);
   }, [activeProject, activeChapter, handleError]);

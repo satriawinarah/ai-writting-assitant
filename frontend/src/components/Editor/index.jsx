@@ -5,7 +5,7 @@
  * Sub-components handle individual AI feature panels for better maintainability.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -21,6 +21,7 @@ import { AVAILABLE_MODELS, DEFAULT_MODEL } from '../../constants/styles';
 
 export default function Editor({ chapter, onUpdate }) {
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const lastChapterIdRef = useRef(null);
 
   // Custom hooks for AI features
   const continuation = useContinuation();
@@ -57,10 +58,22 @@ export default function Editor({ chapter, onUpdate }) {
 
   // Update editor content when chapter changes
   useEffect(() => {
-    if (editor && chapter?.content !== editor.getHTML()) {
-      editor.commands.setContent(chapter?.content || '');
+    if (!editor) return;
+
+    // Only update content when switching to a different chapter
+    const chapterChanged = chapter?.id !== lastChapterIdRef.current;
+
+    if (chapterChanged) {
+      lastChapterIdRef.current = chapter?.id;
+      const newContent = chapter?.content || '';
+      const currentContent = editor.getHTML();
+
+      // Only set content if it's actually different to preserve cursor position
+      if (newContent !== currentContent) {
+        editor.commands.setContent(newContent);
+      }
     }
-  }, [chapter?.id]);
+  }, [editor, chapter?.id, chapter?.content]);
 
   // Event handlers that wrap hook methods with editor context
   const handleGenerateSuggestion = () => {

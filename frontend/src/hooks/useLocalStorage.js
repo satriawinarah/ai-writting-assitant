@@ -34,17 +34,20 @@ export default function useLocalStorage(key, initialValue) {
   // Update localStorage when value changes
   const setValue = useCallback((value) => {
     try {
-      // Allow value to be a function (like setState)
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
+      // Use functional update to avoid stale closure
+      setStoredValue((currentValue) => {
+        const valueToStore = value instanceof Function ? value(currentValue) : value;
 
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      }
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        }
+
+        return valueToStore;
+      });
     } catch (error) {
       console.warn(`Error setting localStorage key "${key}":`, error);
     }
-  }, [key, storedValue]);
+  }, [key]);
 
   // Remove value from localStorage
   const removeValue = useCallback(() => {

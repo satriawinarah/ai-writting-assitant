@@ -22,6 +22,17 @@ export default function useAuth() {
     checkAuth();
   }, []);
 
+  // Listen for unauthorized events from API interceptor
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      setShowLanding(true);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
+
   const checkAuth = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -43,6 +54,11 @@ export default function useAuth() {
   };
 
   const login = useCallback(async (credentials) => {
+    // Clear any previous auth state before attempting login
+    setUser(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+
     try {
       const response = await authAPI.login(credentials);
       localStorage.setItem('token', response.data.access_token);
@@ -50,6 +66,10 @@ export default function useAuth() {
       setUser(response.data.user);
       showSuccess('Login successful');
     } catch (error) {
+      // Ensure state is fully reset on failure
+      setUser(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       handleError(error, 'Login failed');
       throw error;
     }

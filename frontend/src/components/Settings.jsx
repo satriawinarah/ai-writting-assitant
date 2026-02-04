@@ -24,7 +24,7 @@ export default function Settings() {
         setDefaultPrompts(defaults);
         setCustomPrompts(userSettings.custom_prompts || {});
       } catch (err) {
-        setError(err.message || 'Failed to load settings');
+        setError(err.response?.data?.detail || err.message || 'Failed to load settings');
       } finally {
         setLoading(false);
       }
@@ -59,7 +59,7 @@ export default function Settings() {
       setSuccessMessage('Settings saved successfully!');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      setError(err.message || 'Failed to save settings');
+      setError(err.response?.data?.detail || err.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }

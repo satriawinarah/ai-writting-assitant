@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './ProjectTree.css';
 
 export default function ProjectTree({
@@ -36,19 +36,20 @@ export default function ProjectTree({
     localStorage.setItem('expandedProjects', JSON.stringify(expandedProjects));
   }, [expandedProjects]);
 
+  // Memoized click outside handler to prevent memory leaks
+  const handleClickOutside = useCallback((event) => {
+    if (contextMenuRef.current && !contextMenuRef.current.contains(event.target)) {
+      setContextMenu(null);
+    }
+  }, []);
+
   // Close context menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target)) {
-        setContextMenu(null);
-      }
-    };
-
     if (contextMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [contextMenu]);
+  }, [contextMenu, handleClickOutside]);
 
   const toggleProject = (projectId) => {
     setExpandedProjects((prev) => ({
