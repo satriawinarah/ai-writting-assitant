@@ -22,7 +22,8 @@ export default function ProjectModal({ isOpen, onClose, onSubmit, project = null
   }, [project, isOpen]);
 
   const handleSubmit = () => {
-    onSubmit({ title, description });
+    if (!title.trim()) return;
+    onSubmit({ title: title.trim(), description: description.trim() });
     setTitle('');
     setDescription('');
   };

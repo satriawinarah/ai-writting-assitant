@@ -23,8 +23,23 @@ export default function Register({ onRegister, onSwitchToLogin }) {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
+
+    if (!/[A-Z]/.test(formData.password)) {
+      setError('Password must contain at least one uppercase letter');
+      return;
+    }
+
+    if (!/[0-9]/.test(formData.password)) {
+      setError('Password must contain at least one number');
+      return;
+    }
+
+    if (!/[^A-Za-z0-9]/.test(formData.password)) {
+      setError('Password must contain at least one special character');
       return;
     }
 
@@ -119,7 +134,7 @@ export default function Register({ onRegister, onSwitchToLogin }) {
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
-              minLength="6"
+              minLength="8"
               disabled={loading}
             />
           </div>
@@ -132,7 +147,7 @@ export default function Register({ onRegister, onSwitchToLogin }) {
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
               required
-              minLength="6"
+              minLength="8"
               disabled={loading}
             />
           </div>

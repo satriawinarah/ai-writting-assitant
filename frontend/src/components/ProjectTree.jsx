@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './ProjectTree.css';
 
 export default function ProjectTree({
@@ -149,31 +149,35 @@ export default function ProjectTree({
     onNewChapter();
   };
 
-  // Get chapters for a project (from activeProject if it's the same project)
-  const getProjectChapters = (project) => {
-    if (activeProject && activeProject.id === project.id) {
-      return activeProject.chapters || [];
-    }
-    return [];
-  };
+  // Memoize chapter lookup to avoid recomputation on every render
+  const activeChaptersMap = useMemo(() => {
+    if (!activeProject?.chapters) return {};
+    return { [activeProject.id]: activeProject.chapters };
+  }, [activeProject?.id, activeProject?.chapters]);
+
+  const getProjectChapters = useCallback((project) => {
+    return activeChaptersMap[project.id] || [];
+  }, [activeChaptersMap]);
 
   return (
     <div className="project-tree">
       {projects.length === 0 ? (
         <div className="tree-empty">No projects yet. Create one to get started!</div>
       ) : (
-        <ul className="tree-list">
+        <ul className="tree-list" role="tree" aria-label="Project tree">
           {projects.map((project) => {
             const isExpanded = expandedProjects[project.id];
             const chapters = getProjectChapters(project);
             const isActive = activeProject?.id === project.id;
 
             return (
-              <li key={project.id} className="tree-project">
+              <li key={project.id} className="tree-project" role="treeitem" aria-expanded={isExpanded}>
                 <div
                   className={`tree-item project-item ${isActive ? 'active' : ''}`}
                   onClick={() => handleProjectClick(project)}
                   onContextMenu={(e) => handleContextMenu(e, project, 'project')}
+                  role="button"
+                  aria-label={`Project: ${project.title}`}
                 >
                   <span className="tree-icon">{isExpanded ? '📂' : '📁'}</span>
                   {editingItem?.id === project.id && editingItem?.type === 'project' ? (
@@ -199,15 +203,17 @@ export default function ProjectTree({
 
                 {isExpanded && (
                   <div className="tree-children">
-                    <ul className="chapter-list">
+                    <ul className="chapter-list" role="group">
                       {chapters.map((chapter) => (
-                        <li key={chapter.id} className="tree-chapter">
+                        <li key={chapter.id} className="tree-chapter" role="treeitem">
                           <div
                             className={`tree-item chapter-item ${
                               activeChapter?.id === chapter.id ? 'active' : ''
                             }`}
                             onClick={(e) => handleChapterClick(e, chapter)}
                             onContextMenu={(e) => handleContextMenu(e, chapter, 'chapter')}
+                            role="button"
+                            aria-label={`Chapter: ${chapter.title}`}
                           >
                             <span className="tree-icon">📄</span>
                             {editingItem?.id === chapter.id && editingItem?.type === 'chapter' ? (
@@ -248,13 +254,15 @@ export default function ProjectTree({
         <div
           ref={contextMenuRef}
           className="context-menu"
+          role="menu"
+          aria-label="Context menu"
           style={{
-            top: `${contextMenu.y}px`,
-            left: `${contextMenu.x}px`,
+            top: `${Math.min(contextMenu.y, window.innerHeight - 100)}px`,
+            left: `${Math.min(contextMenu.x, window.innerWidth - 150)}px`,
           }}
         >
-          <button onClick={handleRename}>Rename</button>
-          <button onClick={handleDelete} className="danger">
+          <button onClick={handleRename} role="menuitem">Rename</button>
+          <button onClick={handleDelete} className="danger" role="menuitem">
             Delete
           </button>
         </div>

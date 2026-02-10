@@ -59,7 +59,7 @@ export default function LiveReviewPanel({
           )}
 
           {error && (
-            <div className={issues.length === 0 && !error.includes('Gagal') ? 'success' : 'error'}>
+            <div className={issues.length === 0 && !loading ? 'review-info' : 'review-error'}>
               {error}
             </div>
           )}

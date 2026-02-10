@@ -58,7 +58,10 @@ export default function useImprovement() {
   const applyImprovement = (editor) => {
     if (!editor || !improvedText) return;
 
-    const { from, to } = editor.state.selection;
+    const selection = editor.state?.selection;
+    if (!selection) return;
+
+    const { from, to } = selection;
     editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, improvedText).run();
 
     // Clear state
